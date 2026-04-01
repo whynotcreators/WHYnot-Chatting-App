@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chatting App</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;
+  --surface:#181c25;
+  --surface2:#1e2330;
+  --border:#242838;
+  --accent:#6c63ff;
+  --accent-hover:#7c74ff;
+  --green:#1db954;
+  --red:#e24b4a;
+  --amber:#f59e0b;
+  --blue:#3b82f6;
+  --pink:#ec4899;
+  --text:#e8eaf0;
+  --text2:#a0aabb;
+  --text3:#505870;
+  --font-sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'JetBrains Mono','Fira Mono',monospace;
+  --radius:12px;
+  --radius-sm:8px;
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+
+/* ── APP LAYOUT ── */
+#app{display:flex;width:100%;min-height:100vh}
+
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh;width:100%}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sb-top{padding:20px 16px 16px}
+.sb-brand{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.sb-tagline{font-size:11px;color:var(--text3);margin-top:2px}
+.sb-sep{height:1px;background:var(--border);margin:4px 0}
+.sb-group{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:10px 16px 4px}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:1px 8px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:13px;font-weight:400;transition:all .15s;position:relative}
+.sb-item:hover{background:var(--surface2);color:var(--text)}
+.sb-item.active{background:rgba(108,99,255,.15);color:var(--accent);font-weight:500}
+.sb-item svg{flex-shrink:0;opacity:.7}
+.sb-item.active svg{opacity:1}
+.sb-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;line-height:1.3}
+.sb-bottom{margin-top:auto;padding:14px 16px;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:10px}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.sb-name{font-size:13px;font-weight:500;color:var(--text)}
+.sb-role{font-size:11px;color:var(--text3)}
+
+/* ── MAIN ── */
+.main{overflow-y:auto;background:var(--bg)}
+.page{display:none;padding:28px 32px}
+.page.active{display:block}
+
+/* ── PAGE HEADER ── */
+.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px}
+.page-hdr-left .page-title{font-size:20px;font-weight:600;color:var(--text)}
+.page-hdr-left .page-sub{font-size:13px;color:var(--text2);margin-top:3px}
+
+/* ── KPI CARDS ── */
+.kpi-row{display:grid;gap:16px;margin-bottom:24px}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-3{grid-template-columns:repeat(3,1fr)}
+.kpi-2{grid-template-columns:repeat(2,1fr)}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px}
+.kpi-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.kpi-hint{font-size:12px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:var(--green)}
+.dot-red{background:var(--red)}
+.dot-blue{background:var(--blue)}
+.dot-purple{background:var(--accent)}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
+.card-hdr{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.card-body{padding:20px}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 16px;border-bottom:1px solid rgba(36,40,56,.5);font-size:13px;color:var(--text);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;line-height:1.4;white-space:nowrap}
+.bg-green{background:rgba(29,185,84,.15);color:var(--green)}
+.bg-red{background:rgba(226,75,74,.15);color:var(--red)}
+.bg-amber{background:rgba(245,158,11,.15);color:var(--amber)}
+.bg-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.bg-purple{background:rgba(108,99,255,.15);color:var(--accent)}
+.bg-pink{background:rgba(236,72,153,.15);color:var(--pink)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--font-sans);transition:all .15s;line-height:1}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:rgba(226,75,74,.12);color:var(--red);border:1px solid rgba(226,75,74,.25)}
+.btn-danger:hover{background:rgba(226,75,74,.22)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{background:none;border:none;cursor:pointer;color:var(--text3);padding:5px;border-radius:6px;transition:all .15s;display:inline-flex;align-items:center;font-size:13px}
+.btn-icon:hover{color:var(--text);background:var(--surface2)}
+
+/* ── FORMS ── */
+.fg{margin-bottom:16px}
+.fg label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:block;margin-bottom:6px}
+.fi,.fs,.fta{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;color:var(--text);font-family:var(--font-sans);outline:none;transition:border-color .15s}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--accent)}
+.fs{cursor:pointer}
+.fta{resize:vertical;min-height:72px}
+.frow{display:grid;gap:14px}
+.frow-2{grid-template-columns:1fr 1fr}
+.frow-3{grid-template-columns:1fr 1fr 1fr}
+.pass-wrap{position:relative}
+.pass-wrap .fi{padding-right:36px}
+.pass-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);transition:color .15s}
+.pass-eye:hover{color:var(--text)}
+
+/* ── SUB TABS ── */
+.sub-tabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--border)}
+.sub-tab{padding:10px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
+.sub-tab:hover{color:var(--text)}
+.sub-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none;padding:20px}
+.tab-content.active{display:block}
+
+/* ── TABS (page level) ── */
+.page-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.page-tab{padding:8px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.page-tab:hover{color:var(--text)}
+.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-lg{max-width:600px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:15px;font-weight:600;color:var(--text)}
+.modal-x{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;padding:2px}
+.modal-x:hover{color:var(--text)}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-ico{font-size:28px;margin-bottom:10px;opacity:.5}
+.empty-txt{font-size:13px}
+
+/* ── SEARCH ── */
+.search-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.search-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;color:var(--text);font-family:var(--font-sans);outline:none;width:240px;transition:border-color .15s}
+.search-input:focus{border-color:var(--accent)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 18px;font-size:13px;z-index:9999;display:none;animation:toastIn .2s ease}
+.toast.show{display:block}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RULES BOX ── */
+.rules-box{background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:var(--radius-sm);padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+
+<div id="app" style="display:flex;width:100%;min-height:100vh">
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-top">
+    <div class="sb-brand">WHYnot</div>
+    <div class="sb-tagline">WHYnot Creators</div>
+  </div>
+  <div class="sb-sep"></div>
+  <div class="sb-group">Principal</div>
+  <div class="sb-item active" id="sbi-dashboard" onclick="swSec('dashboard',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    Dashboard
+  </div>
+  <div class="sb-item" id="sbi-ingresos" onclick="swSec('ingresos',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Ingresos
+  </div>
+  <div class="sb-item" id="sbi-pagos" onclick="swSec('pagos',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    Pagos
+  </div>
+  <div class="sb-sep"></div>
+  <div class="sb-group">Gestión</div>
+  <div class="sb-item" id="sbi-chatters" onclick="swSec('chatters',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Chatters
+  </div>
+  <div class="sb-item" id="sbi-modelos" onclick="swSec('modelos',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    Modelos
+  </div>
+  <div class="sb-item" id="sbi-solicitudes" onclick="swSec('solicitudes',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Solicitudes <span class="sb-badge" id="badge-sol" style="display:none">0</span>
+  </div>
+  <div class="sb-item" id="sbi-candidatos" onclick="swSec('candidatos',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="23" y2="8"/><line x1="21" y1="6" x2="21" y2="10"/></svg>
+    Candidatos
+  </div>
+  <div class="sb-sep"></div>
+  <div class="sb-group">Personal</div>
+  <div class="sb-item" id="sbi-agenda" onclick="swSec('agenda',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </div>
+  <div class="sb-item" id="sbi-tareas" onclick="swSec('tareas',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Tareas
+  </div>
+  <div id="sb-usuarios-section" style="display:none">
+    <div class="sb-sep"></div>
+    <div class="sb-group">Configuración</div>
+    <div class="sb-item" id="sbi-usuarios" onclick="swSec('usuarios',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><line x1="19" y1="11" x2="19" y2="17"/><line x1="22" y1="14" x2="16" y2="14"/></svg>
+      Usuarios
+    </div>
+  </div>
+  <div class="sb-bottom">
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">A</div>
+      <div>
+        <div class="sb-name" id="sb-uname">—</div>
+        <div class="sb-role" id="sb-urole">—</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ MAIN CONTENT ══ -->
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Dashboard</div><div class="page-sub">Vista general del negocio</div></div>
+  </div>
+  <div class="kpi-row kpi-4">
+    <div class="kpi-card"><div class="kpi-label">Ingresos del mes</div><div class="kpi-val" id="kpi-ing">$0</div><div class="kpi-hint"><span class="dot dot-green"></span>este mes</div></div>
+    <div class="kpi-card"><div class="kpi-label">Egresos del mes</div><div class="kpi-val" id="kpi-egr">$0</div><div class="kpi-hint"><span class="dot dot-red"></span>este mes</div></div>
+    <div class="kpi-card"><div class="kpi-label">Chatters activos</div><div class="kpi-val" id="kpi-cht">0</div><div class="kpi-hint"><span class="dot dot-blue"></span>en equipo</div></div>
+    <div class="kpi-card"><div class="kpi-label">Modelos activas</div><div class="kpi-val" id="kpi-mdl">0</div><div class="kpi-hint"><span class="dot dot-purple"></span>en plataforma</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Solicitudes recientes</div></div>
+    <div id="dash-sol-body"></div>
+  </div>
+</div>
+
+<!-- INGRESOS -->
+<div class="page" id="page-ingresos">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Ingresos</div><div class="page-sub">Registro de ingresos del equipo</div></div>
+    <button class="btn btn-primary" onclick="openM('m-ing')">+ Nuevo ingreso</button>
+  </div>
+  <div class="kpi-row kpi-3">
+    <div class="kpi-card"><div class="kpi-label">Total este mes</div><div class="kpi-val" id="ing-total">$0</div></div>
+    <div class="kpi-card"><div class="kpi-label">Comisiones pagadas</div><div class="kpi-val" id="ing-com">$0</div></div>
+    <div class="kpi-card"><div class="kpi-label">Neto</div><div class="kpi-val" id="ing-neto">$0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Historial de ingresos</div></div>
+    <table class="tbl"><thead><tr><th>Fecha</th><th>Modelo</th><th>Monto</th><th>Fee %</th><th>Descripción</th><th></th></tr></thead>
+    <tbody id="tbody-ing"></tbody></table>
+  </div>
+</div>
+
+<!-- PAGOS -->
+<div class="page" id="page-pagos">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Pagos</div><div class="page-sub">Egresos y pagos al equipo</div></div>
+    <button class="btn btn-primary" onclick="openM('m-egr')">+ Nuevo egreso</button>
+  </div>
+  <div class="kpi-row kpi-2">
+    <div class="kpi-card"><div class="kpi-label">Total egresos este mes</div><div class="kpi-val" id="egr-total">$0</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pagos a chatters</div><div class="kpi-val" id="egr-cht">$0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Historial de egresos</div></div>
+    <table class="tbl"><thead><tr><th>Fecha</th><th>Persona / Concepto</th><th>Monto</th><th>Descripción</th><th></th></tr></thead>
+    <tbody id="tbody-egr"></tbody></table>
+  </div>
+</div>
+
+<!-- CHATTERS -->
+<div class="page" id="page-chatters">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Chatters</div><div class="page-sub">Gestión del equipo de chatters</div></div>
+    <button class="btn btn-primary" onclick="openM('m-cht')">+ Nuevo chatter</button>
+  </div>
+  <div class="search-bar">
+    <input class="search-input" type="text" id="q-cht" placeholder="Buscar chatter..." oninput="renderChatters()"/>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Turno</th><th>Modelos asignadas</th><th>Comisión</th><th>PPH</th><th>Banco</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tbody-cht"></tbody></table>
+  </div>
+</div>
+
+<!-- MODELOS -->
+<div class="page" id="page-modelos">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Modelos</div><div class="page-sub">Modelos en la plataforma</div></div>
+    <button class="btn btn-primary" onclick="openM('m-mdl')">+ Nueva modelo</button>
+  </div>
+  <div class="search-bar">
+    <input class="search-input" type="text" id="q-mdl" placeholder="Buscar modelo..." oninput="renderModelos()"/>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Plataforma</th><th>Chatter asignado</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+    <tbody id="tbody-mdl"></tbody></table>
+  </div>
+</div>
+
+<!-- SOLICITUDES -->
+<div class="page" id="page-solicitudes">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Solicitudes</div><div class="page-sub">Solicitudes de contenido</div></div>
+    <button class="btn btn-primary" onclick="openM('m-sol')">+ Nueva solicitud</button>
+  </div>
+  <div class="rules-box">
+    📌 <strong>Reglas:</strong> El contenido se puede solicitar cualquier día. La entrega de <strong style="color:var(--green)">contenido general</strong> es el <strong style="color:var(--green)">viernes siguiente</strong> al día que se solicita. Los <strong style="color:var(--green)">Customs</strong> se entregan en <strong style="color:var(--green)">máximo 3 días</strong>.
+  </div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="filterSol('todas',this)">Todas</div>
+    <div class="page-tab" onclick="filterSol('pendiente',this)">Pendientes</div>
+    <div class="page-tab" onclick="filterSol('en_proceso',this)">En proceso</div>
+    <div class="page-tab" onclick="filterSol('completada',this)">Completadas</div>
+    <div class="page-tab" onclick="filterSol('cancelada',this)">Canceladas</div>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo</th><th>Fan</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tbody-sol"></tbody></table>
+  </div>
+</div>
+
+<!-- CANDIDATOS -->
+<div class="page" id="page-candidatos">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Candidatos</div><div class="page-sub">Pipeline de nuevas modelos</div></div>
+    <button class="btn btn-primary" onclick="openM('m-cand')">+ Nuevo candidato</button>
+  </div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="filterCand('todos',this)">Todos</div>
+    <div class="page-tab" onclick="filterCand('contactado',this)">Contactados</div>
+    <div class="page-tab" onclick="filterCand('interesado',this)">Interesados</div>
+    <div class="page-tab" onclick="filterCand('incorporado',this)">Incorporados</div>
+    <div class="page-tab" onclick="filterCand('descartado',this)">Descartados</div>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Plataforma</th><th>Contacto</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+    <tbody id="tbody-cand"></tbody></table>
+  </div>
+</div>
+
+<!-- AGENDA -->
+<div class="page" id="page-agenda">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Agenda</div><div class="page-sub">Eventos y recordatorios del equipo</div></div>
+    <button class="btn btn-primary" onclick="openM('m-evt')">+ Nuevo evento</button>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Fecha</th><th>Hora</th><th>Título</th><th>Descripción</th><th></th></tr></thead>
+    <tbody id="tbody-evt"></tbody></table>
+  </div>
+</div>
+
+<!-- TAREAS -->
+<div class="page" id="page-tareas">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Tareas</div><div class="page-sub">Tareas del equipo</div></div>
+    <button class="btn btn-primary" onclick="openM('m-tar')">+ Nueva tarea</button>
+  </div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="filterTar('todas',this)">Todas</div>
+    <div class="page-tab" onclick="filterTar('pendiente',this)">Pendientes</div>
+    <div class="page-tab" onclick="filterTar('completada',this)">Completadas</div>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Tarea</th><th>Asignado a</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tbody-tar"></tbody></table>
+  </div>
+</div>
+
+<!-- USUARIOS -->
+<div class="page" id="page-usuarios">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><div class="page-title">Usuarios</div><div class="page-sub">Gestión de accesos</div></div>
+  </div>
+  <div class="card">
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="swTab('usuarios','lista',this)">Lista</div>
+      <div class="sub-tab" id="tab-tipos-contenido" onclick="swTab('usuarios','tipos',this)" style="display:none">Tipos de contenido</div>
+      <div class="sub-tab" onclick="swTab('usuarios','nuevo',this)">+ Nuevo usuario</div>
+    </div>
+
+    <!-- Lista -->
+    <div class="tab-content active" id="usuarios-lista">
+      <table class="tbl"><thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Contraseña</th><th>Último acceso</th><th></th></tr></thead>
+      <tbody id="tbody-usr"></tbody></table>
+    </div>
+
+    <!-- Tipos de contenido -->
+    <div class="tab-content" id="usuarios-tipos">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Tipos que aparecen en el formulario de Solicitudes.</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+        <input class="fi" id="tipo-nuevo-inp" placeholder="Ej: 📸 Foto Casual" style="flex:1;max-width:320px" onkeydown="if(event.key==='Enter')agregarTipo()"/>
+        <button class="btn btn-primary btn-sm" onclick="agregarTipo()">+ Agregar</button>
+      </div>
+      <div id="tipos-lista"></div>
+    </div>
+
+    <!-- Nuevo usuario -->
+    <div class="tab-content" id="usuarios-nuevo">
+      <div style="max-width:440px">
+        <div class="frow frow-2">
+          <div class="fg"><label>Nombre</label><input class="fi" id="new-usr-nombre" placeholder="Nombre completo"/></div>
+          <div class="fg"><label>Usuario</label><input class="fi" id="new-usr-usuario" placeholder="nombre de usuario"/></div>
+        </div>
+        <div class="frow frow-2">
+          <div class="fg"><label>Contraseña</label>
+            <div class="pass-wrap"><input class="fi" type="password" id="new-usr-pass" placeholder="••••••••"/>
+            <span class="pass-eye" onclick="togglePass('new-usr-pass')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+          </div>
+          <div class="fg"><label>Rol</label>
+            <select class="fs" id="new-usr-rol"><option value="admin">Admin</option><option value="tl">Team Leader</option><option value="cm" selected>Community Manager</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="crearUsuario()">Crear usuario</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+</div>
+
+<!-- ══════ MODALS ══════ -->
+
+<!-- Ingreso -->
+<div class="modal-bg" id="m-ing">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-ing-title">Nuevo ingreso</div><button class="modal-x" onclick="closeM('m-ing')">×</button></div>
+    <input type="hidden" id="m-ing-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-ing-fecha"/></div>
+      <div class="fg"><label>Modelo</label><select class="fs" id="m-ing-modelo"></select></div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Monto (USD)</label><input class="fi" type="number" id="m-ing-monto" placeholder="0"/></div>
+      <div class="fg"><label>Fee %</label><input class="fi" type="number" id="m-ing-fee" placeholder="0" min="0" max="100"/></div>
+    </div>
+    <div class="fg"><label>Descripción</label><input class="fi" id="m-ing-desc" placeholder="Opcional..."/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-ing')">Cancelar</button><button class="btn btn-primary" onclick="saveIngreso()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Egreso -->
+<div class="modal-bg" id="m-egr">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-egr-title">Nuevo egreso</div><button class="modal-x" onclick="closeM('m-egr')">×</button></div>
+    <input type="hidden" id="m-egr-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-egr-fecha"/></div>
+      <div class="fg"><label>Monto (USD)</label><input class="fi" type="number" id="m-egr-monto" placeholder="0"/></div>
+    </div>
+    <div class="fg"><label>Persona / Concepto</label><input class="fi" id="m-egr-persona" placeholder="ej: Editor, Chatter, Canva..."/></div>
+    <div class="fg"><label>Descripción</label><input class="fi" id="m-egr-desc" placeholder="Descripción del gasto..."/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-egr')">Cancelar</button><button class="btn btn-primary" onclick="saveEgreso()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Chatter -->
+<div class="modal-bg" id="m-cht">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-cht-title">Nuevo chatter</div><button class="modal-x" onclick="closeM('m-cht')">×</button></div>
+    <input type="hidden" id="m-cht-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Nombre</label><input class="fi" id="m-cht-nombre" placeholder="Nombre del chatter"/></div>
+      <div class="fg"><label>Turno</label>
+        <select class="fs" id="m-cht-turno">
+          <option value="00-06">00:00 - 06:00</option>
+          <option value="06-12">06:00 - 12:00</option>
+          <option value="12-18">12:00 - 18:00</option>
+          <option value="18-24">18:00 - 24:00</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Comisión %</label><input class="fi" type="number" id="m-cht-com" placeholder="0" min="0" max="100"/></div>
+      <div class="fg"><label>PPH (pago por hora)</label><input class="fi" type="number" id="m-cht-pph" placeholder="0"/></div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Banco / Wallet</label><input class="fi" id="m-cht-banco" placeholder="ej: Binance, PayPal..."/></div>
+      <div class="fg"><label>Dirección wallet</label><input class="fi" id="m-cht-wallet" placeholder="Dirección..."/></div>
+    </div>
+    <div class="fg"><label>Estado</label>
+      <select class="fs" id="m-cht-estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-cht')">Cancelar</button><button class="btn btn-primary" onclick="saveChatter()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Modelo -->
+<div class="modal-bg" id="m-mdl">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-mdl-title">Nueva modelo</div><button class="modal-x" onclick="closeM('m-mdl')">×</button></div>
+    <input type="hidden" id="m-mdl-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Nombre</label><input class="fi" id="m-mdl-nombre" placeholder="Nombre de la modelo"/></div>
+      <div class="fg"><label>Plataforma</label>
+        <select class="fs" id="m-mdl-plat">
+          <option value="OnlyFans">OnlyFans</option><option value="Fansly">Fansly</option>
+          <option value="BentBox">BentBox</option><option value="Otra">Otra</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Chatter asignado</label><select class="fs" id="m-mdl-chatter"></select></div>
+      <div class="fg"><label>Estado</label>
+        <select class="fs" id="m-mdl-estado"><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Notas</label><textarea class="fta" id="m-mdl-notas" placeholder="Notas adicionales..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-mdl')">Cancelar</button><button class="btn btn-primary" onclick="saveModelo()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Solicitud -->
+<div class="modal-bg" id="m-sol">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-sol-title">Nueva solicitud</div><button class="modal-x" onclick="closeM('m-sol')">×</button></div>
+    <input type="hidden" id="m-sol-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-sol-fecha"/></div>
+      <div class="fg"><label>Modelo</label><select class="fs" id="m-sol-modelo"></select></div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Tipo de contenido</label><select class="fs" id="m-sol-tipo" onchange="onSolTipo()"></select></div>
+      <div class="fg"><label>Monto (USD)</label><input class="fi" type="number" id="m-sol-monto" placeholder="0"/></div>
+    </div>
+    <div class="fg"><label>Nombre del fan</label><input class="fi" id="m-sol-fan" placeholder="Usuario del fan..."/></div>
+    <div class="fg"><label>Descripción / Instrucciones</label><textarea class="fta" id="m-sol-desc" placeholder="Detalle de la solicitud..."></textarea></div>
+    <div class="fg"><label>Estado</label>
+      <select class="fs" id="m-sol-estado">
+        <option value="pendiente">Pendiente</option><option value="en_proceso">En proceso</option>
+        <option value="completada">Completada</option><option value="cancelada">Cancelada</option>
+      </select>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-sol')">Cancelar</button><button class="btn btn-primary" onclick="saveSolicitud()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Candidato -->
+<div class="modal-bg" id="m-cand">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-cand-title">Nuevo candidato</div><button class="modal-x" onclick="closeM('m-cand')">×</button></div>
+    <input type="hidden" id="m-cand-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Nombre / Handle</label><input class="fi" id="m-cand-nombre" placeholder="@usuario o nombre"/></div>
+      <div class="fg"><label>Plataforma</label>
+        <select class="fs" id="m-cand-plat">
+          <option value="Instagram">Instagram</option><option value="TikTok">TikTok</option>
+          <option value="Twitter">Twitter/X</option><option value="OnlyFans">OnlyFans</option><option value="Otra">Otra</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Contacto (WhatsApp / DM)</label><input class="fi" id="m-cand-contacto" placeholder="ej: +54 9 11 ..."/></div>
+    <div class="fg"><label>Estado</label>
+      <select class="fs" id="m-cand-estado">
+        <option value="contactado">Contactado</option><option value="interesado">Interesado</option>
+        <option value="incorporado">Incorporado</option><option value="descartado">Descartado</option>
+      </select>
+    </div>
+    <div class="fg"><label>Notas</label><textarea class="fta" id="m-cand-notas" placeholder="Notas sobre el candidato..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-cand')">Cancelar</button><button class="btn btn-primary" onclick="saveCandidato()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Evento -->
+<div class="modal-bg" id="m-evt">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-evt-title">Nuevo evento</div><button class="modal-x" onclick="closeM('m-evt')">×</button></div>
+    <input type="hidden" id="m-evt-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-evt-fecha"/></div>
+      <div class="fg"><label>Hora</label><input class="fi" type="time" id="m-evt-hora"/></div>
+    </div>
+    <div class="fg"><label>Título</label><input class="fi" id="m-evt-titulo" placeholder="Título del evento..."/></div>
+    <div class="fg"><label>Descripción</label><textarea class="fta" id="m-evt-desc" placeholder="Descripción..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-evt')">Cancelar</button><button class="btn btn-primary" onclick="saveEvento()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Tarea -->
+<div class="modal-bg" id="m-tar">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="m-tar-title">Nueva tarea</div><button class="modal-x" onclick="closeM('m-tar')">×</button></div>
+    <input type="hidden" id="m-tar-id"/>
+    <div class="fg"><label>Tarea</label><input class="fi" id="m-tar-titulo" placeholder="Descripción de la tarea..."/></div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Asignado a</label><input class="fi" id="m-tar-asignado" placeholder="Nombre..."/></div>
+      <div class="fg"><label>Prioridad</label>
+        <select class="fs" id="m-tar-prio"><option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option></select>
+      </div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg"><label>Fecha límite</label><input class="fi" type="date" id="m-tar-fecha"/></div>
+      <div class="fg"><label>Estado</label>
+        <select class="fs" id="m-tar-estado"><option value="pendiente">Pendiente</option><option value="completada">Completada</option></select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-tar')">Cancelar</button><button class="btn btn-primary" onclick="saveTarea()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Edit Usuario -->
+<div class="modal-bg" id="m-edit-usr">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">Editar usuario</div><button class="modal-x" onclick="closeM('m-edit-usr')">×</button></div>
+    <input type="hidden" id="m-edit-usr-id"/>
+    <div class="frow frow-2">
+      <div class="fg"><label>Nombre</label><input class="fi" id="m-edit-usr-nombre"/></div>
+      <div class="fg"><label>Usuario</label><input class="fi" id="m-edit-usr-usuario"/></div>
+    </div>
+    <div class="fg"><label>Nueva contraseña</label>
+      <div class="pass-wrap"><input class="fi" type="password" id="m-edit-usr-pass"/>
+      <span class="pass-eye" onclick="togglePass('m-edit-usr-pass')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeM('m-edit-usr')">Cancelar</button><button class="btn btn-primary" onclick="saveEditUsuario()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://hifpdmpbdxbgfaunucxv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpZnBkbXBiZHhiZ2ZhdW51Y3h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwODEzMDgsImV4cCI6MjA5MDY1NzMwOH0.hY7lbBmSoWm26zk2LhFi5Au4PkypgcJqfoaWchYSiF8';
+
+let SC = null; // State Cache
+let CU = null; // Current User
+let solF = 'todas', candF = 'todos', tarF = 'todas';
+
+const TIPOS_DEFAULT = ['📝 Script','📷 Selfie Tranquila (Soft)','🔥 Selfie Caliente (Horny)','Ass Content','Tits Content','Feet Content','Customs Request','Para Masivos','Personalizado','Otro'];
+
+// ── SUPABASE ──
+async function sbGet() {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/chatting_state?id=eq.main&select=data`, {
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  });
+  const d = await r.json();
+  return d[0]?.data || {};
+}
+async function sbSave() {
+  await fetch(`${SUPABASE_URL}/rest/v1/chatting_state?id=eq.main`, {
+    method:'PATCH',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},
+    body: JSON.stringify({data: SC})
+  });
+}
+
+// ── LOGIN ──
+async function autoLoad() {
+  try {
+    SC = await sbGet();
+    // Default user = admin
+    CU = (SC.usuarios||[]).find(u => u.rol === 'admin') || {id:'default',nombre:'Admin',usuario:'admin',rol:'admin'};
+    initApp();
+  } catch(err) {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#e24b4a;font-family:sans-serif">Error de conexión con Supabase</div>';
+  }
+}
+document.addEventListener('DOMContentLoaded', autoLoad);
+
+function initApp() {
+  const n = CU.nombre || CU.usuario;
+  document.getElementById('sb-uname').textContent = n;
+  document.getElementById('sb-avatar').textContent = n[0].toUpperCase();
+  document.getElementById('sb-urole').textContent = rolNombre(CU.rol);
+  if (CU.rol === 'admin' || CU.rol === 'tl') {
+    document.getElementById('sb-usuarios-section').style.display = '';
+    if (CU.rol === 'admin') document.getElementById('tab-tipos-contenido').style.display = '';
+  }
+  renderAll();
+}
+
+// ── NAV ──
+function swSec(sec, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-'+sec).classList.add('active');
+  if (el) el.classList.add('active');
+}
+function swTab(section, tab, el) {
+  document.querySelectorAll('#page-'+section+' .tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#page-'+section+' .sub-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(section+'-'+tab).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ── UTILS ──
+function uid() { return '_'+Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
+function v(id) { return document.getElementById(id)?.value?.trim()||''; }
+function sv(id, val) { const el = document.getElementById(id); if(el) el.value = val||''; }
+function fDate(d) { if(!d) return '—'; try { return new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); } catch{ return d; } }
+function fMoney(n) { return '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function thisMonth() { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
+function isThisMonth(d) { return d && d.startsWith(thisMonth()); }
+function rolNombre(r) { return r==='admin'?'Administrador':r==='tl'?'Team Leader':'Community Manager'; }
+function togglePass(id) { const el=document.getElementById(id); el.type=el.type==='password'?'text':'password'; }
+
+function openM(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show '+type;
+  clearTimeout(t._to); t._to = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function ensureArr(key) { if (!SC[key]) SC[key] = []; }
+
+function renderAll() {
+  renderDash(); renderIngresos(); renderEgresos();
+  renderChatters(); renderModelos(); renderSolicitudes();
+  renderCandidatos(); renderAgenda(); renderTareas();
+  renderUsuarios(); renderTipos(); updateBadgeSol();
+}
+
+// ── DASHBOARD ──
+function renderDash() {
+  const ing = (SC.ingresos||[]).filter(i => isThisMonth(i.fecha)).reduce((a,i) => a+(parseFloat(i.monto)||0),0);
+  const egr = (SC.egresos||[]).filter(e => isThisMonth(e.fecha)).reduce((a,e) => a+(parseFloat(e.monto)||0),0);
+  document.getElementById('kpi-ing').textContent = fMoney(ing);
+  document.getElementById('kpi-egr').textContent = fMoney(egr);
+  document.getElementById('kpi-cht').textContent = (SC.chatters||[]).filter(c => c.estado==='activo').length;
+  document.getElementById('kpi-mdl').textContent = (SC.modelos||[]).filter(m => m.estado==='activa').length;
+  const sols = (SC.solicitudes||[]).slice(-5).reverse();
+  const c = document.getElementById('dash-sol-body');
+  if (!sols.length) { c.innerHTML = '<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">No hay solicitudes recientes</div></div>'; return; }
+  c.innerHTML = '<table class="tbl"><thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>' +
+    sols.map(s => `<tr><td>${fDate(s.fecha)}</td><td>${s.modelo||'—'}</td><td>${s.tipo||'—'}</td><td>${badgeSol(s.estado)}</td></tr>`).join('') + '</tbody></table>';
+}
+
+// ── INGRESOS ──
+function renderIngresos() {
+  const all = SC.ingresos || [];
+  const mes = all.filter(i => isThisMonth(i.fecha));
+  const tot = mes.reduce((a,i) => a+(parseFloat(i.monto)||0),0);
+  const com = mes.reduce((a,i) => a+(parseFloat(i.monto)||0)*(parseFloat(i.fee)||0)/100,0);
+  document.getElementById('ing-total').textContent = fMoney(tot);
+  document.getElementById('ing-com').textContent = fMoney(com);
+  document.getElementById('ing-neto').textContent = fMoney(tot-com);
+  const tbody = document.getElementById('tbody-ing');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="6">${emptyHTML('💰','Sin ingresos registrados')}</td></tr>`; return; }
+  tbody.innerHTML = [...all].reverse().map(i => `<tr>
+    <td>${fDate(i.fecha)}</td><td>${i.modelo||'—'}</td><td>${fMoney(i.monto)}</td>
+    <td>${i.fee||0}%</td><td>${i.descripcion||'—'}</td>
+    <td style="white-space:nowrap"><button class="btn-icon" onclick="editIngreso('${i.id}')">✏️</button><button class="btn-icon" onclick="delIngreso('${i.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+function openIngreso() {
+  document.getElementById('m-ing-title').textContent='Nuevo ingreso';
+  sv('m-ing-id',''); sv('m-ing-fecha',today()); sv('m-ing-monto',''); sv('m-ing-fee',''); sv('m-ing-desc','');
+  fillSelect('m-ing-modelo',(SC.modelos||[]).map(m=>({v:m.nombre,l:m.nombre})),'Sin modelo');
+  openM('m-ing');
+}
+function editIngreso(id) {
+  const i = (SC.ingresos||[]).find(x=>x.id===id); if(!i) return;
+  document.getElementById('m-ing-title').textContent='Editar ingreso';
+  sv('m-ing-id',id); sv('m-ing-fecha',i.fecha); sv('m-ing-monto',i.monto); sv('m-ing-fee',i.fee||0); sv('m-ing-desc',i.descripcion||'');
+  fillSelect('m-ing-modelo',(SC.modelos||[]).map(m=>({v:m.nombre,l:m.nombre})),'Sin modelo',i.modelo);
+  openM('m-ing');
+}
+async function saveIngreso() {
+  const id = v('m-ing-id');
+  const obj = {id:id||uid(),fecha:v('m-ing-fecha'),modelo:v('m-ing-modelo'),monto:parseFloat(v('m-ing-monto'))||0,fee:parseFloat(v('m-ing-fee'))||0,descripcion:v('m-ing-desc')};
+  if (!obj.fecha||!obj.monto) { toast('Completa fecha y monto','err'); return; }
+  ensureArr('ingresos');
+  SC.ingresos = id ? SC.ingresos.map(x=>x.id===id?obj:x) : [...SC.ingresos, obj];
+  await sbSave(); renderIngresos(); renderDash(); closeM('m-ing'); toast('Ingreso guardado');
+}
+async function delIngreso(id) {
+  if (!confirm('¿Eliminar este ingreso?')) return;
+  SC.ingresos = (SC.ingresos||[]).filter(x=>x.id!==id);
+  await sbSave(); renderIngresos(); renderDash(); toast('Eliminado');
+}
+
+// ── EGRESOS ──
+function renderEgresos() {
+  const all = SC.egresos || [];
+  const mes = all.filter(e => isThisMonth(e.fecha));
+  const tot = mes.reduce((a,e) => a+(parseFloat(e.monto)||0),0);
+  document.getElementById('egr-total').textContent = fMoney(tot);
+  document.getElementById('kpi-egr').textContent = fMoney(tot);
+  const chts = (SC.chatters||[]).map(c=>c.nombre);
+  document.getElementById('egr-cht').textContent = fMoney(mes.filter(e=>chts.includes(e.persona)).reduce((a,e)=>a+(parseFloat(e.monto)||0),0));
+  const tbody = document.getElementById('tbody-egr');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="5">${emptyHTML('💸','Sin egresos registrados')}</td></tr>`; return; }
+  tbody.innerHTML = [...all].reverse().map(e => `<tr>
+    <td>${fDate(e.fecha)}</td><td>${e.persona||'—'}</td><td>${fMoney(e.monto)}</td><td>${e.descripcion||'—'}</td>
+    <td style="white-space:nowrap"><button class="btn-icon" onclick="editEgreso('${e.id}')">✏️</button><button class="btn-icon" onclick="delEgreso('${e.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+function openEgreso() {
+  document.getElementById('m-egr-title').textContent='Nuevo egreso';
+  sv('m-egr-id',''); sv('m-egr-fecha',today()); sv('m-egr-monto',''); sv('m-egr-persona',''); sv('m-egr-desc','');
+  openM('m-egr');
+}
+function editEgreso(id) {
+  const e = (SC.egresos||[]).find(x=>x.id===id); if(!e) return;
+  document.getElementById('m-egr-title').textContent='Editar egreso';
+  sv('m-egr-id',id); sv('m-egr-fecha',e.fecha); sv('m-egr-monto',e.monto); sv('m-egr-persona',e.persona||''); sv('m-egr-desc',e.descripcion||'');
+  openM('m-egr');
+}
+async function saveEgreso() {
+  const id = v('m-egr-id');
+  const obj = {id:id||uid(),fecha:v('m-egr-fecha'),monto:parseFloat(v('m-egr-monto'))||0,persona:v('m-egr-persona'),descripcion:v('m-egr-desc')};
+  if (!obj.fecha||!obj.monto) { toast('Completa fecha y monto','err'); return; }
+  ensureArr('egresos');
+  SC.egresos = id ? SC.egresos.map(x=>x.id===id?obj:x) : [...SC.egresos, obj];
+  await sbSave(); renderEgresos(); renderDash(); closeM('m-egr'); toast('Egreso guardado');
+}
+async function delEgreso(id) {
+  if (!confirm('¿Eliminar?')) return;
+  SC.egresos = (SC.egresos||[]).filter(x=>x.id!==id);
+  await sbSave(); renderEgresos(); renderDash(); toast('Eliminado');
+}
+
+// ── CHATTERS ──
+function renderChatters() {
+  const q = (document.getElementById('q-cht')?.value||'').toLowerCase();
+  const all = (SC.chatters||[]).filter(c => !q||c.nombre.toLowerCase().includes(q));
+  const tbody = document.getElementById('tbody-cht');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="8">${emptyHTML('💬','Sin chatters registrados')}</td></tr>`; return; }
+  tbody.innerHTML = all.map(c => {
+    const mods = (SC.modelos||[]).filter(m=>m.chatter===c.id).map(m=>m.nombre).join(', ')||'—';
+    return `<tr>
+      <td><strong>${c.nombre}</strong></td><td><span class="badge bg-blue">${c.turno||'—'}</span></td>
+      <td style="max-width:160px;font-size:12px">${mods}</td><td>${c.comision||0}%</td>
+      <td>${c.pph||0}/h</td><td>${c.banco||'—'}</td>
+      <td>${c.estado==='activo'?'<span class="badge bg-green">Activo</span>':'<span class="badge bg-red">Inactivo</span>'}</td>
+      <td style="white-space:nowrap"><button class="btn-icon" onclick="editChatter('${c.id}')">✏️</button><button class="btn-icon" onclick="delChatter('${c.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+function openChatter() {
+  document.getElementById('m-cht-title').textContent='Nuevo chatter';
+  ['m-cht-id','m-cht-nombre','m-cht-banco','m-cht-wallet'].forEach(id=>sv(id,''));
+  sv('m-cht-com',0); sv('m-cht-pph',0); sv('m-cht-estado','activo');
+  openM('m-cht');
+}
+function editChatter(id) {
+  const c = (SC.chatters||[]).find(x=>x.id===id); if(!c) return;
+  document.getElementById('m-cht-title').textContent='Editar chatter';
+  sv('m-cht-id',id); sv('m-cht-nombre',c.nombre); sv('m-cht-turno',c.turno||'00-06');
+  sv('m-cht-com',c.comision||0); sv('m-cht-pph',c.pph||0); sv('m-cht-banco',c.banco||''); sv('m-cht-wallet',c.wallet||''); sv('m-cht-estado',c.estado||'activo');
+  openM('m-cht');
+}
+async function saveChatter() {
+  const id = v('m-cht-id');
+  const obj = {id:id||uid(),nombre:v('m-cht-nombre'),turno:v('m-cht-turno'),comision:parseFloat(v('m-cht-com'))||0,pph:parseFloat(v('m-cht-pph'))||0,banco:v('m-cht-banco'),wallet:v('m-cht-wallet'),estado:v('m-cht-estado')};
+  if (!obj.nombre) { toast('Ingresa el nombre','err'); return; }
+  ensureArr('chatters');
+  SC.chatters = id ? SC.chatters.map(x=>x.id===id?obj:x) : [...SC.chatters, obj];
+  await sbSave(); renderChatters(); renderDash(); closeM('m-cht'); toast('Chatter guardado');
+}
+async function delChatter(id) {
+  if (!confirm('¿Eliminar este chatter?')) return;
+  SC.chatters = (SC.chatters||[]).filter(x=>x.id!==id);
+  await sbSave(); renderChatters(); renderDash(); toast('Eliminado');
+}
+
+// ── MODELOS ──
+function renderModelos() {
+  const q = (document.getElementById('q-mdl')?.value||'').toLowerCase();
+  const all = (SC.modelos||[]).filter(m => !q||m.nombre.toLowerCase().includes(q));
+  const tbody = document.getElementById('tbody-mdl');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="6">${emptyHTML('⭐','Sin modelos registradas')}</td></tr>`; return; }
+  tbody.innerHTML = all.map(m => {
+    const ch = (SC.chatters||[]).find(c=>c.id===m.chatter);
+    return `<tr>
+      <td><strong>${m.nombre}</strong></td><td>${m.plataforma||'—'}</td>
+      <td>${ch?ch.nombre:'—'}</td>
+      <td>${m.estado==='activa'?'<span class="badge bg-green">Activa</span>':'<span class="badge bg-red">Inactiva</span>'}</td>
+      <td style="max-width:180px;font-size:12px;color:var(--text2)">${m.notas||'—'}</td>
+      <td style="white-space:nowrap"><button class="btn-icon" onclick="editModelo('${m.id}')">✏️</button><button class="btn-icon" onclick="delModelo('${m.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+function openModelo() {
+  document.getElementById('m-mdl-title').textContent='Nueva modelo';
+  sv('m-mdl-id',''); sv('m-mdl-nombre',''); sv('m-mdl-notas',''); sv('m-mdl-estado','activa');
+  fillSelectChatter('m-mdl-chatter');
+  openM('m-mdl');
+}
+function editModelo(id) {
+  const m = (SC.modelos||[]).find(x=>x.id===id); if(!m) return;
+  document.getElementById('m-mdl-title').textContent='Editar modelo';
+  sv('m-mdl-id',id); sv('m-mdl-nombre',m.nombre); sv('m-mdl-plat',m.plataforma||'OnlyFans'); sv('m-mdl-estado',m.estado||'activa'); sv('m-mdl-notas',m.notas||'');
+  fillSelectChatter('m-mdl-chatter',m.chatter);
+  openM('m-mdl');
+}
+async function saveModelo() {
+  const id = v('m-mdl-id');
+  const obj = {id:id||uid(),nombre:v('m-mdl-nombre'),plataforma:v('m-mdl-plat'),chatter:v('m-mdl-chatter'),estado:v('m-mdl-estado'),notas:v('m-mdl-notas')};
+  if (!obj.nombre) { toast('Ingresa el nombre','err'); return; }
+  ensureArr('modelos');
+  SC.modelos = id ? SC.modelos.map(x=>x.id===id?obj:x) : [...SC.modelos, obj];
+  await sbSave(); renderModelos(); renderDash(); closeM('m-mdl'); toast('Modelo guardada');
+}
+async function delModelo(id) {
+  if (!confirm('¿Eliminar?')) return;
+  SC.modelos = (SC.modelos||[]).filter(x=>x.id!==id);
+  await sbSave(); renderModelos(); renderDash(); toast('Eliminada');
+}
+
+// ── SOLICITUDES ──
+function getTipos() { return SC.tiposContenido?.length ? SC.tiposContenido : TIPOS_DEFAULT; }
+function badgeSol(s) {
+  const map = {pendiente:['bg-amber','Pendiente'],en_proceso:['bg-blue','En proceso'],completada:['bg-green','Completada'],cancelada:['bg-red','Cancelada']};
+  const [cls,lbl] = map[s]||['bg-amber','Pendiente'];
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+function filterSol(f, el) {
+  solF = f;
+  document.querySelectorAll('#page-solicitudes .page-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active'); renderSolicitudes();
+}
+function updateBadgeSol() {
+  const n = (SC.solicitudes||[]).filter(s=>s.estado==='pendiente').length;
+  const b = document.getElementById('badge-sol');
+  if (n>0){b.textContent=n;b.style.display='';}else{b.style.display='none';}
+}
+function onSolTipo() {}
+function renderSolicitudes() {
+  let all = SC.solicitudes || [];
+  if (solF!=='todas') all = all.filter(s=>s.estado===solF);
+  const tbody = document.getElementById('tbody-sol');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="7">${emptyHTML('📋','Sin solicitudes')}</td></tr>`; return; }
+  tbody.innerHTML = [...all].reverse().map(s => `<tr>
+    <td>${fDate(s.fecha)}</td><td>${s.modelo||'—'}</td><td>${s.tipo||'—'}</td>
+    <td>${s.fan||'—'}</td><td>${fMoney(s.monto)}</td><td>${badgeSol(s.estado)}</td>
+    <td style="white-space:nowrap"><button class="btn-icon" onclick="editSolicitud('${s.id}')">✏️</button><button class="btn-icon" onclick="delSolicitud('${s.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+function openSolicitud() {
+  document.getElementById('m-sol-title').textContent='Nueva solicitud';
+  sv('m-sol-id',''); sv('m-sol-fecha',today()); sv('m-sol-monto',''); sv('m-sol-fan',''); sv('m-sol-desc',''); sv('m-sol-estado','pendiente');
+  fillSelect('m-sol-modelo',(SC.modelos||[]).map(m=>({v:m.nombre,l:m.nombre})),'Seleccionar modelo...');
+  fillTiposSelect();
+  openM('m-sol');
+}
+function editSolicitud(id) {
+  const s = (SC.solicitudes||[]).find(x=>x.id===id); if(!s) return;
+  document.getElementById('m-sol-title').textContent='Editar solicitud';
+  sv('m-sol-id',id); sv('m-sol-fecha',s.fecha); sv('m-sol-monto',s.monto||0); sv('m-sol-fan',s.fan||''); sv('m-sol-desc',s.descripcion||''); sv('m-sol-estado',s.estado||'pendiente');
+  fillSelect('m-sol-modelo',(SC.modelos||[]).map(m=>({v:m.nombre,l:m.nombre})),'Seleccionar modelo...',s.modelo);
+  fillTiposSelect(s.tipo);
+  openM('m-sol');
+}
+function fillTiposSelect(val='') {
+  const sel = document.getElementById('m-sol-tipo');
+  sel.innerHTML = getTipos().map(t=>`<option value="${t}" ${t===val?'selected':''}>${t}</option>`).join('');
+}
+async function saveSolicitud() {
+  const id = v('m-sol-id');
+  const obj = {id:id||uid(),fecha:v('m-sol-fecha'),modelo:v('m-sol-modelo'),tipo:v('m-sol-tipo'),monto:parseFloat(v('m-sol-monto'))||0,fan:v('m-sol-fan'),descripcion:v('m-sol-desc'),estado:v('m-sol-estado')};
+  if (!obj.fecha) { toast('Ingresa la fecha','err'); return; }
+  ensureArr('solicitudes');
+  SC.solicitudes = id ? SC.solicitudes.map(x=>x.id===id?obj:x) : [...SC.solicitudes, obj];
+  await sbSave(); renderSolicitudes(); renderDash(); updateBadgeSol(); closeM('m-sol'); toast('Solicitud guardada');
+}
+async function delSolicitud(id) {
+  if (!confirm('¿Eliminar?')) return;
+  SC.solicitudes = (SC.solicitudes||[]).filter(x=>x.id!==id);
+  await sbSave(); renderSolicitudes(); renderDash(); updateBadgeSol(); toast('Eliminada');
+}
+
+// ── CANDIDATOS ──
+function badgeCand(s) {
+  const map = {contactado:['bg-blue','Contactado'],interesado:['bg-amber','Interesado'],incorporado:['bg-green','Incorporado'],descartado:['bg-red','Descartado']};
+  const [cls,lbl] = map[s]||['bg-blue','Contactado'];
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+function filterCand(f, el) {
+  candF = f;
+  document.querySelectorAll('#page-candidatos .page-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active'); renderCandidatos();
+}
+function renderCandidatos() {
+  let all = SC.candidatos || [];
+  if (candF!=='todos') all = all.filter(c=>c.estado===candF);
+  const tbody = document.getElementById('tbody-cand');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="6">${emptyHTML('🎯','Sin candidatos')}</td></tr>`; return; }
+  tbody.innerHTML = all.map(c => `<tr>
+    <td><strong>${c.nombre}</strong></td><td>${c.plataforma||'—'}</td><td>${c.contacto||'—'}</td>
+    <td>${badgeCand(c.estado)}</td><td style="max-width:180px;font-size:12px;color:var(--text2)">${c.notas||'—'}</td>
+    <td style="white-space:nowrap"><button class="btn-icon" onclick="editCandidato('${c.id}')">✏️</button><button class="btn-icon" onclick="delCandidato('${c.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+function openCandidato() {
+  document.getElementById('m-cand-title').textContent='Nuevo candidato';
+  ['m-cand-id','m-cand-nombre','m-cand-contacto','m-cand-notas'].forEach(id=>sv(id,''));
+  sv('m-cand-estado','contactado');
+  openM('m-cand');
+}
+function editCandidato(id) {
+  const c = (SC.candidatos||[]).find(x=>x.id===id); if(!c) return;
+  document.getElementById('m-cand-title').textContent='Editar candidato';
+  sv('m-cand-id',id); sv('m-cand-nombre',c.nombre); sv('m-cand-plat',c.plataforma||'Instagram'); sv('m-cand-contacto',c.contacto||''); sv('m-cand-estado',c.estado||'contactado'); sv('m-cand-notas',c.notas||'');
+  openM('m-cand');
+}
+async function saveCandidato() {
+  const id = v('m-cand-id');
+  const obj = {id:id||uid(),nombre:v('m-cand-nombre'),plataforma:v('m-cand-plat'),contacto:v('m-cand-contacto'),estado:v('m-cand-estado'),notas:v('m-cand-notas')};
+  if (!obj.nombre) { toast('Ingresa el nombre','err'); return; }
+  ensureArr('candidatos');
+  SC.candidatos = id ? SC.candidatos.map(x=>x.id===id?obj:x) : [...SC.candidatos, obj];
+  await sbSave(); renderCandidatos(); closeM('m-cand'); toast('Guardado');
+}
+async function delCandidato(id) {
+  if (!confirm('¿Eliminar?')) return;
+  SC.candidatos = (SC.candidatos||[]).filter(x=>x.id!==id);
+  await sbSave(); renderCandidatos(); toast('Eliminado');
+}
+
+// ── AGENDA ──
+function renderAgenda() {
+  const all = (SC.agenda||[]).sort((a,b)=>a.fecha>b.fecha?1:-1);
+  const tbody = document.getElementById('tbody-evt');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="5">${emptyHTML('📅','Sin eventos agendados')}</td></tr>`; return; }
+  tbody.innerHTML = all.map(e => `<tr>
+    <td>${fDate(e.fecha)}</td><td>${e.hora||'—'}</td><td><strong>${e.titulo}</strong></td><td>${e.descripcion||'—'}</td>
+    <td style="white-space:nowrap"><button class="btn-icon" onclick="editEvento('${e.id}')">✏️</button><button class="btn-icon" onclick="delEvento('${e.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+function openEvento() {
+  document.getElementById('m-evt-title').textContent='Nuevo evento';
+  ['m-evt-id','m-evt-hora','m-evt-titulo','m-evt-desc'].forEach(id=>sv(id,''));
+  sv('m-evt-fecha',today());
+  openM('m-evt');
+}
+function editEvento(id) {
+  const e = (SC.agenda||[]).find(x=>x.id===id); if(!e) return;
+  document.getElementById('m-evt-title').textContent='Editar evento';
+  sv('m-evt-id',id); sv('m-evt-fecha',e.fecha); sv('m-evt-hora',e.hora||''); sv('m-evt-titulo',e.titulo); sv('m-evt-desc',e.descripcion||'');
+  openM('m-evt');
+}
+async function saveEvento() {
+  const id = v('m-evt-id');
+  const obj = {id:id||uid(),fecha:v('m-evt-fecha'),hora:v('m-evt-hora'),titulo:v('m-evt-titulo'),descripcion:v('m-evt-desc')};
+  if (!obj.fecha||!obj.titulo) { toast('Completa fecha y título','err'); return; }
+  ensureArr('agenda');
+  SC.agenda = id ? SC.agenda.map(x=>x.id===id?obj:x) : [...SC.agenda, obj];
+  await sbSave(); renderAgenda(); closeM('m-evt'); toast('Evento guardado');
+}
+async function delEvento(id) {
+  if (!confirm('¿Eliminar?')) return;
+  SC.agenda = (SC.agenda||[]).filter(x=>x.id!==id);
+  await sbSave(); renderAgenda(); toast('Eliminado');
+}
+
+// ── TAREAS ──
+function filterTar(f, el) {
+  tarF = f;
+  document.querySelectorAll('#page-tareas .page-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active'); renderTareas();
+}
+function renderTareas() {
+  let all = SC.tareas || [];
+  if (tarF!=='todas') all = all.filter(t=>t.estado===tarF);
+  const tbody = document.getElementById('tbody-tar');
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="6">${emptyHTML('✅','Sin tareas')}</td></tr>`; return; }
+  const pMap = {baja:'bg-blue',media:'bg-amber',alta:'bg-red'};
+  tbody.innerHTML = all.map(t => `<tr>
+    <td>${t.estado==='completada'?`<s style="color:var(--text3)">${t.titulo}</s>`:t.titulo}</td>
+    <td>${t.asignado||'—'}</td>
+    <td><span class="badge ${pMap[t.prioridad]||'bg-blue'}">${t.prioridad||'baja'}</span></td>
+    <td>${fDate(t.fecha)}</td>
+    <td>${t.estado==='completada'?'<span class="badge bg-green">Completada</span>':'<span class="badge bg-amber">Pendiente</span>'}</td>
+    <td style="white-space:nowrap">
+      <button class="btn-icon" onclick="toggleTarea('${t.id}')" title="Cambiar estado">${t.estado==='completada'?'↩️':'✅'}</button>
+      <button class="btn-icon" onclick="editTarea('${t.id}')">✏️</button>
+      <button class="btn-icon" onclick="delTarea('${t.id}')">🗑️</button>
+    </td>
+  </tr>`).join('');
+}
+function openTarea() {
+  document.getElementById('m-tar-title').textContent='Nueva tarea';
+  ['m-tar-id','m-tar-titulo','m-tar-asignado','m-tar-fecha'].forEach(id=>sv(id,''));
+  sv('m-tar-prio','media'); sv('m-tar-estado','pendiente');
+  openM('m-tar');
+}
+function editTarea(id) {
+  const t = (SC.tareas||[]).find(x=>x.id===id); if(!t) return;
+  document.getElementById('m-tar-title').textContent='Editar tarea';
+  sv('m-tar-id',id); sv('m-tar-titulo',t.titulo); sv('m-tar-asignado',t.asignado||''); sv('m-tar-prio',t.prioridad||'media'); sv('m-tar-fecha',t.fecha||''); sv('m-tar-estado',t.estado||'pendiente');
+  openM('m-tar');
+}
+async function saveTarea() {
+  const id = v('m-tar-id');
+  const obj = {id:id||uid(),titulo:v('m-tar-titulo'),asignado:v('m-tar-asignado'),prioridad:v('m-tar-prio'),fecha:v('m-tar-fecha'),estado:v('m-tar-estado')};
+  if (!obj.titulo) { toast('Ingresa la tarea','err'); return; }
+  ensureArr('tareas');
+  SC.tareas = id ? SC.tareas.map(x=>x.id===id?obj:x) : [...SC.tareas, obj];
+  await sbSave(); renderTareas(); closeM('m-tar'); toast('Tarea guardada');
+}
+async function toggleTarea(id) {
+  const t = (SC.tareas||[]).find(x=>x.id===id); if(!t) return;
+  t.estado = t.estado==='completada'?'pendiente':'completada';
+  await sbSave(); renderTareas();
+}
+async function delTarea(id) {
+  if (!confirm('¿Eliminar?')) return;
+  SC.tareas = (SC.tareas||[]).filter(x=>x.id!==id);
+  await sbSave(); renderTareas(); toast('Eliminada');
+}
+
+// ── USUARIOS ──
+function renderUsuarios() {
+  const all = SC.usuarios || [];
+  const tbody = document.getElementById('tbody-usr');
+  tbody.innerHTML = all.map(u => `<tr>
+    <td><strong>${u.nombre}</strong></td><td>${u.usuario}</td>
+    <td><span class="badge ${u.rol==='admin'?'bg-purple':u.rol==='tl'?'bg-blue':'bg-green'}">${rolNombre(u.rol)}</span></td>
+    <td>
+      <span style="display:inline-flex;align-items:center;gap:6px">
+        <span id="pass-${u.id}" style="filter:blur(4px);cursor:default;font-size:12px;font-family:var(--font-mono)">${u.pass}</span>
+        <span style="cursor:pointer;color:var(--text3)" onclick="togglePassVis('${u.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      </span>
+    </td>
+    <td style="font-size:12px;color:var(--text2)">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+    <td>${u.usuario!=='admin'?`<button class="btn-icon" onclick="openEditUsuario('${u.id}')">✏️</button><button class="btn-icon" onclick="delUsuario('${u.id}')">🗑️</button>`:'—'}</td>
+  </tr>`).join('');
+}
+function togglePassVis(id) {
+  const el = document.getElementById('pass-'+id);
+  if (el) el.style.filter = el.style.filter ? '' : 'blur(4px)';
+}
+function openEditUsuario(id) {
+  const u = (SC.usuarios||[]).find(x=>x.id===id); if(!u) return;
+  sv('m-edit-usr-id',id); sv('m-edit-usr-nombre',u.nombre); sv('m-edit-usr-usuario',u.usuario); sv('m-edit-usr-pass',u.pass);
+  openM('m-edit-usr');
+}
+async function saveEditUsuario() {
+  const id = v('m-edit-usr-id');
+  const u = (SC.usuarios||[]).find(x=>x.id===id); if(!u) return;
+  u.nombre = v('m-edit-usr-nombre')||u.nombre;
+  u.usuario = v('m-edit-usr-usuario')||u.usuario;
+  u.pass = v('m-edit-usr-pass')||u.pass;
+  await sbSave(); renderUsuarios(); closeM('m-edit-usr'); toast('Usuario actualizado');
+}
+async function crearUsuario() {
+  const nombre = v('new-usr-nombre'), usuario = v('new-usr-usuario'), pass = v('new-usr-pass'), rol = v('new-usr-rol');
+  if (!nombre||!usuario||!pass) { toast('Completa todos los campos','err'); return; }
+  const obj = {id:uid(),nombre,usuario,pass,rol,creado:today()};
+  ensureArr('usuarios');
+  SC.usuarios.push(obj);
+  await sbSave(); renderUsuarios();
+  ['new-usr-nombre','new-usr-usuario','new-usr-pass'].forEach(id=>sv(id,''));
+  toast('Usuario creado');
+}
+async function delUsuario(id) {
+  if (!confirm('¿Eliminar este usuario?')) return;
+  SC.usuarios = (SC.usuarios||[]).filter(x=>x.id!==id);
+  await sbSave(); renderUsuarios(); toast('Eliminado');
+}
+
+// ── TIPOS DE CONTENIDO ──
+function renderTipos() {
+  const tipos = getTipos();
+  const c = document.getElementById('tipos-lista');
+  if (!tipos.length) { c.innerHTML = '<div style="color:var(--text3);font-size:13px">Sin tipos de contenido.</div>'; return; }
+  c.innerHTML = tipos.map((t,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;max-width:400px">
+      <span style="flex:1;font-size:13px" id="tipo-txt-${i}" onclick="startEditTipo(${i})" title="Click para editar">${t}</span>
+      <input class="fi" style="flex:1;display:none;padding:4px 8px" id="tipo-inp-${i}" value="${t}" onblur="saveTipoEdit(${i})" onkeydown="if(event.key==='Enter')saveTipoEdit(${i});if(event.key==='Escape')cancelEditTipo(${i})"/>
+      <button class="btn-icon btn-sm" onclick="moverTipo(${i},-1)" title="Subir">↑</button>
+      <button class="btn-icon btn-sm" onclick="moverTipo(${i},1)" title="Bajar">↓</button>
+      <button class="btn-icon btn-sm" style="color:var(--red)" onclick="delTipo(${i})">×</button>
+    </div>`).join('');
+}
+function startEditTipo(i) {
+  document.getElementById('tipo-txt-'+i).style.display='none';
+  const inp = document.getElementById('tipo-inp-'+i);
+  inp.style.display=''; inp.focus(); inp.select();
+}
+function saveTipoEdit(i) {
+  const inp = document.getElementById('tipo-inp-'+i);
+  const val = inp.value.trim();
+  if (val) {
+    if (!SC.tiposContenido) SC.tiposContenido = [...TIPOS_DEFAULT];
+    SC.tiposContenido[i] = val;
+    sbSave().then(()=>renderTipos());
+  } else cancelEditTipo(i);
+}
+function cancelEditTipo(i) {
+  document.getElementById('tipo-inp-'+i).style.display='none';
+  document.getElementById('tipo-txt-'+i).style.display='';
+}
+async function agregarTipo() {
+  const val = v('tipo-nuevo-inp');
+  if (!val) return;
+  if (!SC.tiposContenido) SC.tiposContenido = [...TIPOS_DEFAULT];
+  SC.tiposContenido.push(val);
+  sv('tipo-nuevo-inp','');
+  await sbSave(); renderTipos(); toast('Tipo agregado');
+}
+async function delTipo(i) {
+  if (!confirm('¿Eliminar este tipo?')) return;
+  if (!SC.tiposContenido) SC.tiposContenido = [...TIPOS_DEFAULT];
+  SC.tiposContenido.splice(i,1);
+  await sbSave(); renderTipos(); toast('Eliminado');
+}
+async function moverTipo(i, dir) {
+  if (!SC.tiposContenido) SC.tiposContenido = [...TIPOS_DEFAULT];
+  const arr = SC.tiposContenido;
+  const ni = i+dir;
+  if (ni<0||ni>=arr.length) return;
+  [arr[i],arr[ni]] = [arr[ni],arr[i]];
+  await sbSave(); renderTipos();
+}
+
+// ── HELPERS ──
+function today() { return new Date().toISOString().split('T')[0]; }
+function emptyHTML(ico, txt) { return `<div class="empty"><div class="empty-ico">${ico}</div><div class="empty-txt">${txt}</div></div>`; }
+function fillSelect(id, opts, placeholder='', selected='') {
+  const sel = document.getElementById(id); if(!sel) return;
+  sel.innerHTML = `<option value="">${placeholder}</option>` + opts.map(o=>`<option value="${o.v}" ${o.v===selected?'selected':''}>${o.l}</option>`).join('');
+}
+function fillSelectChatter(id, selected='') {
+  fillSelect(id,(SC.chatters||[]).map(c=>({v:c.id,l:c.nombre})),'Sin asignar',selected);
+}
+
+// ── OVERRIDE openM for pre-fill ──
+const _rawOpenM = openM;
+window.openM = function(id) {
+  if (id==='m-ing') { openIngreso(); return; }
+  if (id==='m-egr') { openEgreso(); return; }
+  if (id==='m-cht') { openChatter(); return; }
+  if (id==='m-mdl') { openModelo(); return; }
+  if (id==='m-sol') { openSolicitud(); return; }
+  if (id==='m-cand') { openCandidato(); return; }
+  if (id==='m-evt') { openEvento(); return; }
+  if (id==='m-tar') { openTarea(); return; }
+  _rawOpenM(id);
+};
+</script>
+</body>
+</html>
