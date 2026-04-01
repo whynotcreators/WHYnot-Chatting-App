@@ -226,6 +226,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="card-hdr"><div class="card-ttl">Solicitudes recientes</div></div>
     <div id="dash-sol-body"></div>
   </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr"><div class="card-ttl">📋 Tareas para hoy</div></div>
+      <div id="dash-tareas-hoy"></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr"><div class="card-ttl">📅 Agenda de hoy</div></div>
+      <div id="dash-agenda-hoy"></div>
+    </div>
+  </div>
 </div>
 
 <!-- INGRESOS -->
@@ -315,15 +325,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="ph-l"><div class="pt">Candidatos</div><div class="ps">Pipeline de nuevas modelos</div></div>
     <button class="btn btn-primary" onclick="openModal('m-cand')">+ Nuevo candidato</button>
   </div>
-  <div class="ptabs">
-    <div class="ptab active" onclick="fCand('todos',this)">Todos</div>
-    <div class="ptab" onclick="fCand('contactado',this)">Contactados</div>
-    <div class="ptab" onclick="fCand('interesado',this)">Interesados</div>
-    <div class="ptab" onclick="fCand('incorporado',this)">Incorporados</div>
-    <div class="ptab" onclick="fCand('descartado',this)">Descartados</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px">
+    <div class="ptabs" style="margin-bottom:0;border-bottom:none">
+      <div class="ptab active" onclick="fCand('todos',this)">Todos</div>
+      <div class="ptab" onclick="fCand('contactado',this)">Contactados</div>
+      <div class="ptab" onclick="fCand('interesado',this)">Interesados</div>
+      <div class="ptab" onclick="fCand('incorporado',this)">Incorporados</div>
+      <div class="ptab" onclick="fCand('descartado',this)">Descartados</div>
+    </div>
+    <select class="fs" id="cand-disp-filter" onchange="renderCandidatos()" style="width:auto;padding:7px 12px;font-size:13px">
+      <option value="">Todos los horarios</option>
+      <option value="00-06">🌙 00:00 - 06:00</option>
+      <option value="06-12">🌅 06:00 - 12:00</option>
+      <option value="12-18">☀️ 12:00 - 18:00</option>
+      <option value="18-00">🌆 18:00 - 00:00</option>
+    </select>
   </div>
   <div class="card">
-    <table class="tbl"><thead><tr><th>Nombre</th><th>Plataforma</th><th>Contacto</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Plataforma</th><th>Contacto</th><th>Disponibilidad</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
     <tbody id="tbody-cand"></tbody></table>
   </div>
 </div>
@@ -365,7 +384,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="btn btn-primary" onclick="openModal('m-evt')">+ Nuevo evento</button>
   </div>
   <div class="card">
-    <table class="tbl"><thead><tr><th>Fecha</th><th>Hora</th><th>Título</th><th>Descripción</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Título</th><th>Link</th><th>Descripción</th><th></th></tr></thead>
     <tbody id="tbody-evt"></tbody></table>
   </div>
 </div>
@@ -535,7 +554,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Nombre / Handle</label><input class="fi" id="m-cand-nombre" placeholder="@usuario o nombre"/></div>
       <div class="fg"><label>Plataforma</label><select class="fs" id="m-cand-plat"><option>Instagram</option><option>TikTok</option><option>Twitter/X</option><option>OnlyFans</option><option>Otra</option></select></div>
     </div>
-    <div class="fg"><label>Contacto</label><input class="fi" id="m-cand-contacto" placeholder="ej: +54 9 11 ..."/></div>
+    <div class="fg"><label>Contacto (WhatsApp / DM)</label><input class="fi" id="m-cand-contacto" placeholder="ej: +54 9 11 ..."/></div>
+    <div class="fg"><label>Disponibilidad horaria</label>
+      <select class="fs" id="m-cand-disp">
+        <option value="">Sin especificar</option>
+        <option value="00-06">🌙 00:00 - 06:00 (madrugada)</option>
+        <option value="06-12">🌅 06:00 - 12:00 (mañana)</option>
+        <option value="12-18">☀️ 12:00 - 18:00 (tarde)</option>
+        <option value="18-00">🌆 18:00 - 00:00 (noche)</option>
+      </select>
+    </div>
     <div class="fg"><label>Estado</label><select class="fs" id="m-cand-est"><option value="contactado">Contactado</option><option value="interesado">Interesado</option><option value="incorporado">Incorporado</option><option value="descartado">Descartado</option></select></div>
     <div class="fg"><label>Notas</label><textarea class="fta" id="m-cand-notas" placeholder="Notas sobre el candidato..."></textarea></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-cand')">Cancelar</button><button class="btn btn-primary" onclick="saveCandidato()">Guardar</button></div>
@@ -550,7 +578,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-evt-fecha"/></div>
       <div class="fg"><label>Hora</label><input class="fi" type="time" id="m-evt-hora"/></div>
     </div>
+    <div class="fg"><label>Tipo de evento</label>
+      <select class="fs" id="m-evt-tipo">
+        <option value="call_chatter">📞 Call con chatter</option>
+        <option value="entrevista">🎤 Entrevista</option>
+        <option value="call_direccion">🏢 Call con dirección</option>
+        <option value="otro">📌 Otro</option>
+      </select>
+    </div>
     <div class="fg"><label>Título</label><input class="fi" id="m-evt-titulo" placeholder="Título del evento..."/></div>
+    <div class="fg"><label>Link de la call</label><input class="fi" id="m-evt-link" placeholder="https://meet.google.com/..."/></div>
     <div class="fg"><label>Descripción</label><textarea class="fta" id="m-evt-desc" placeholder="Descripción..."></textarea></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-evt')">Cancelar</button><button class="btn btn-primary" onclick="saveEvento()">Guardar</button></div>
   </div>
@@ -703,6 +740,41 @@ function renderDash(){
   if(!sols.length){c.innerHTML='<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No hay solicitudes recientes</div></div>';}
   else{c.innerHTML='<table class="tbl"><thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>'+sols.map(s=>`<tr><td>${fDate(s.fecha)}</td><td>${s.modelo||'—'}</td><td>${s.tipo||'—'}</td><td>${bSol(s.estado)}</td></tr>`).join('')+'</tbody></table>';}
   buildChart(team);
+  renderHoy();
+}
+function renderHoy(){
+  const hoy=today();
+  // Tareas de hoy
+  const tareas=(SC.tareas||[]).filter(t=>t.fecha===hoy&&t.estado!=='completada');
+  const th=document.getElementById('dash-tareas-hoy');
+  if(th){
+    if(!tareas.length){th.innerHTML='<div class="empty" style="padding:20px"><div class="empty-t">Sin tareas para hoy ✓</div></div>';}
+    else{th.innerHTML='<div style="padding:8px 4px">'+tareas.map(t=>{
+      const pm={baja:'bg-blue',media:'bg-amber',alta:'bg-red'};
+      return`<div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid rgba(36,40,56,.4)">
+        <span class="badge ${pm[t.prioridad]||'bg-blue'}" style="font-size:10px">${t.prioridad||'baja'}</span>
+        <span style="font-size:13px;flex:1">${t.titulo}</span>
+        <span style="font-size:11px;color:var(--text3)">${t.asignado||''}</span>
+      </div>`;
+    }).join('')+'</div>';}
+  }
+  // Agenda de hoy
+  const eventos=(SC.agenda||[]).filter(e=>e.fecha===hoy).sort((a,b)=>a.hora>b.hora?1:-1);
+  const ah=document.getElementById('dash-agenda-hoy');
+  if(ah){
+    if(!eventos.length){ah.innerHTML='<div class="empty" style="padding:20px"><div class="empty-t">Sin eventos hoy</div></div>';}
+    else{
+      const tipoEvt={call_chatter:'📞',entrevista:'🎤',call_direccion:'🏢',otro:'📌'};
+      ah.innerHTML='<div style="padding:8px 4px">'+eventos.map(e=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid rgba(36,40,56,.4)">
+          <span style="font-size:16px">${tipoEvt[e.tipo]||'📌'}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${e.titulo}</div>
+            ${e.hora?`<div style="font-size:11px;color:var(--text3)">${e.hora}hs</div>`:''}
+          </div>
+          ${e.link?`<a href="${e.link}" target="_blank" style="color:var(--accent);font-size:12px">🔗</a>`:''}
+        </div>`).join('')+'</div>';}
+  }
 }
 function buildChart(team='all'){
   const year=new Date().getFullYear();
@@ -910,22 +982,26 @@ async function delSolicitud(id){if(!confirm('¿Eliminar?'))return;SC.solicitudes
 // CANDIDATOS
 function bCand(s){const m={contactado:['bg-blue','Contactado'],interesado:['bg-amber','Interesado'],incorporado:['bg-green','Incorporado'],descartado:['bg-red','Descartado']};const[c,l]=m[s]||['bg-blue','Contactado'];return`<span class="badge ${c}">${l}</span>`;}
 function fCand(f,el){candF=f;document.querySelectorAll('#page-candidatos .ptab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderCandidatos();}
-function prepCand(){sv('m-cand-ttl','Nuevo candidato');['m-cand-id','m-cand-nombre','m-cand-contacto','m-cand-notas'].forEach(id=>sv(id,''));sv('m-cand-est','contactado');}
-function editCandidato(id){const c=(SC.candidatos||[]).find(x=>x.id===id);if(!c)return;sv('m-cand-ttl','Editar candidato');sv('m-cand-id',id);sv('m-cand-nombre',c.nombre);sv('m-cand-plat',c.plataforma||'Instagram');sv('m-cand-contacto',c.contacto||'');sv('m-cand-est',c.estado||'contactado');sv('m-cand-notas',c.notas||'');document.getElementById('m-cand').classList.add('open');}
+function prepCand(){sv('m-cand-ttl','Nuevo candidato');['m-cand-id','m-cand-nombre','m-cand-contacto','m-cand-notas'].forEach(id=>sv(id,''));sv('m-cand-est','contactado');sv('m-cand-disp','');}
+function editCandidato(id){const c=(SC.candidatos||[]).find(x=>x.id===id);if(!c)return;sv('m-cand-ttl','Editar candidato');sv('m-cand-id',id);sv('m-cand-nombre',c.nombre);sv('m-cand-plat',c.plataforma||'Instagram');sv('m-cand-contacto',c.contacto||'');sv('m-cand-disp',c.disponibilidad||'');sv('m-cand-est',c.estado||'contactado');sv('m-cand-notas',c.notas||'');document.getElementById('m-cand').classList.add('open');}
 async function saveCandidato(){
   const id=gv('m-cand-id');
-  const obj={id:id||uid(),nombre:gv('m-cand-nombre'),plataforma:gv('m-cand-plat'),contacto:gv('m-cand-contacto'),estado:gv('m-cand-est'),notas:gv('m-cand-notas')};
+  const obj={id:id||uid(),nombre:gv('m-cand-nombre'),plataforma:gv('m-cand-plat'),contacto:gv('m-cand-contacto'),disponibilidad:gv('m-cand-disp'),estado:gv('m-cand-est'),notas:gv('m-cand-notas')};
   if(!obj.nombre){toast('Ingresá el nombre','err');return;}
   ensureArr('candidatos');SC.candidatos=id?SC.candidatos.map(x=>x.id===id?obj:x):[...SC.candidatos,obj];
   await save();renderCandidatos();closeModal('m-cand');toast('Guardado');
 }
 function renderCandidatos(){
   let all=SC.candidatos||[];if(candF!=='todos')all=all.filter(c=>c.estado===candF);
+  const df=document.getElementById('cand-disp-filter')?.value||'';
+  if(df)all=all.filter(c=>c.disponibilidad===df);
   const tb=document.getElementById('tbody-cand');
-  if(!all.length){tb.innerHTML=emptyRow(6,'🎯','Sin candidatos');return;}
+  if(!all.length){tb.innerHTML=emptyRow(7,'🎯','Sin candidatos');return;}
+  const dispLbl={'00-06':'🌙 00-06','06-12':'🌅 06-12','12-18':'☀️ 12-18','18-00':'🌆 18-00'};
   tb.innerHTML=all.map(c=>`<tr>
     <td><strong>${c.nombre}</strong></td><td>${c.plataforma||'—'}</td><td>${c.contacto||'—'}</td>
-    <td>${bCand(c.estado)}</td><td style="font-size:12px;color:var(--text2);max-width:180px">${c.notas||'—'}</td>
+    <td>${c.disponibilidad?`<span class="badge bg-blue">${dispLbl[c.disponibilidad]||c.disponibilidad}</span>`:'—'}</td>
+    <td>${bCand(c.estado)}</td><td style="font-size:12px;color:var(--text2);max-width:140px">${c.notas||'—'}</td>
     <td><button class="bti" onclick="editCandidato('${c.id}')">✏️</button><button class="bti" onclick="delCandidato('${c.id}')">🗑️</button></td>
   </tr>`).join('');
 }
@@ -1021,11 +1097,11 @@ async function saveHoras(){
 }
 
 // AGENDA
-function prepEvt(){sv('m-evt-ttl','Nuevo evento');['m-evt-id','m-evt-hora','m-evt-titulo','m-evt-desc'].forEach(id=>sv(id,''));sv('m-evt-fecha',today());}
-function editEvento(id){const e=(SC.agenda||[]).find(x=>x.id===id);if(!e)return;sv('m-evt-ttl','Editar evento');sv('m-evt-id',id);sv('m-evt-fecha',e.fecha);sv('m-evt-hora',e.hora||'');sv('m-evt-titulo',e.titulo);sv('m-evt-desc',e.descripcion||'');document.getElementById('m-evt').classList.add('open');}
+function prepEvt(){sv('m-evt-ttl','Nuevo evento');['m-evt-id','m-evt-hora','m-evt-titulo','m-evt-desc','m-evt-link'].forEach(id=>sv(id,''));sv('m-evt-fecha',today());sv('m-evt-tipo','call_chatter');}
+function editEvento(id){const e=(SC.agenda||[]).find(x=>x.id===id);if(!e)return;sv('m-evt-ttl','Editar evento');sv('m-evt-id',id);sv('m-evt-fecha',e.fecha);sv('m-evt-hora',e.hora||'');sv('m-evt-tipo',e.tipo||'call_chatter');sv('m-evt-titulo',e.titulo);sv('m-evt-link',e.link||'');sv('m-evt-desc',e.descripcion||'');document.getElementById('m-evt').classList.add('open');}
 async function saveEvento(){
   const id=gv('m-evt-id');
-  const obj={id:id||uid(),fecha:gv('m-evt-fecha'),hora:gv('m-evt-hora'),titulo:gv('m-evt-titulo'),descripcion:gv('m-evt-desc')};
+  const obj={id:id||uid(),fecha:gv('m-evt-fecha'),hora:gv('m-evt-hora'),tipo:gv('m-evt-tipo'),titulo:gv('m-evt-titulo'),link:gv('m-evt-link'),descripcion:gv('m-evt-desc')};
   if(!obj.fecha||!obj.titulo){toast('Completá fecha y título','err');return;}
   ensureArr('agenda');SC.agenda=id?SC.agenda.map(x=>x.id===id?obj:x):[...SC.agenda,obj];
   await save();renderAgenda();closeModal('m-evt');toast('Evento guardado');
@@ -1034,8 +1110,11 @@ function renderAgenda(){
   const all=(SC.agenda||[]).sort((a,b)=>a.fecha>b.fecha?1:-1);
   const tb=document.getElementById('tbody-evt');
   if(!all.length){tb.innerHTML=emptyRow(5,'📅','Sin eventos');return;}
+  const tipoEvt={call_chatter:'<span class="badge bg-blue">📞 Call chatter</span>',entrevista:'<span class="badge bg-purple">🎤 Entrevista</span>',call_direccion:'<span class="badge bg-amber">🏢 Call dirección</span>',otro:'<span class="badge bg-cyan">📌 Otro</span>'};
   tb.innerHTML=all.map(e=>`<tr>
-    <td>${fDate(e.fecha)}</td><td>${e.hora||'—'}</td><td><strong>${e.titulo}</strong></td><td>${e.descripcion||'—'}</td>
+    <td>${fDate(e.fecha)}</td><td>${e.hora||'—'}</td><td>${tipoEvt[e.tipo]||tipoEvt['otro']}</td><td><strong>${e.titulo}</strong></td>
+    <td>${e.link?`<a href="${e.link}" target="_blank" style="color:var(--accent);font-size:12px">🔗 Abrir</a>`:'—'}</td>
+    <td>${e.descripcion||'—'}</td>
     <td><button class="bti" onclick="editEvento('${e.id}')">✏️</button><button class="bti" onclick="delEvento('${e.id}')">🗑️</button></td>
   </tr>`).join('');
 }
