@@ -1017,27 +1017,25 @@ function updIngMdls(){
   updIngCalc();
 }
 function updIngCalc(){
+  const {pph:cfgPPH,comNormal:cfgComN,comLunes:cfgComL}=getCfg();
   const cid=gv('m-ing-cht');
   const cht=(SC.chatters||[]).find(c=>c.id===cid);
   const hrs=parseFloat(gv('m-ing-hrs'))||0;
-  // Modelos del team
   const mods=(SC.modelos||[]).filter(m=>m.team===cht?.equipo&&m.estado==='activa');
   let totalMdls=0;
   mods.forEach(m=>{totalMdls+=parseFloat(document.getElementById('ing-mdl-'+m.id)?.value||0);});
-  // Lunes
   const lunesVal=document.getElementById('ing-lunes-check')?.value||'no';
   const nLunes=lunesVal==='no'?0:parseInt(lunesVal);
   let lunesMonto=0;
   for(let i=0;i<nLunes;i++){
     const v=parseFloat(document.getElementById('ing-lunes-'+i)?.value||0);
-    if(document.getElementById('ing-lunes-com-'+i))document.getElementById('ing-lunes-com-'+i).textContent=fMon(v*0.08);
+    if(document.getElementById('ing-lunes-com-'+i))document.getElementById('ing-lunes-com-'+i).textContent=fMon(v*(cfgComL/100));
     lunesMonto+=v;
   }
   const lunesCom=lunesMonto*(cfgComL/100);
   const normalCom=(totalMdls-lunesMonto)*(cfgComN/100);
   const totalCom=normalCom+lunesCom;
   const total=totalMdls;
-  const {pph:cfgPPH,comNormal:cfgComN,comLunes:cfgComL}=getCfg();
   const costoH=hrs*cfgPPH;
   const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':mods.length>0?'— (cargá hrs)':'—';
   document.getElementById('ing-calc-total').textContent=fMon(total);
