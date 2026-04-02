@@ -444,18 +444,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <select class="fs" id="perf-nicho" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los nichos</option></select>
     <select class="fs" id="perf-modelo" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todas las modelos</option></select>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
-    <span style="font-size:12px;color:var(--text3)">Ordenar por:</span>
-    <select class="fs" id="perf-sort" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px">
-      <option value="fac_desc">Mayor facturación</option>
-      <option value="fac_asc">Menor facturación</option>
-      <option value="hrs_desc">Más horas trabajadas</option>
-      <option value="hrs_asc">Menos horas trabajadas</option>
-      <option value="profit_desc">Mayor profit</option>
-      <option value="profit_asc">Menor profit</option>
-      <option value="margen_desc">Mayor margen</option>
-    </select>
-  </div>
+
   <div class="krow k4" id="perf-kpis"></div>
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr">
@@ -464,6 +453,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div class="card-body" id="perf-horas-body"><div style="color:var(--text3);font-size:13px">Seleccioná un equipo y periodo para cargar horas.</div></div>
   </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)">
+    <span style="font-size:13px;color:var(--text2);font-weight:500">Ordenar comparativas por:</span>
+    <select class="fs" id="perf-sort" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px">
+      <option value="fac_desc">💰 Mayor facturación</option>
+      <option value="fac_asc">💰 Menor facturación</option>
+      <option value="hrs_desc">⏱ Más horas trabajadas</option>
+      <option value="hrs_asc">⏱ Menos horas trabajadas</option>
+      <option value="profit_desc">📈 Mayor profit</option>
+      <option value="profit_asc">📈 Menor profit</option>
+      <option value="margen_desc">% Mayor margen</option>
+    </select>
+    <span style="font-size:12px;color:var(--text3)">Aplica a ambas tablas</span>
+  </div>
+
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr"><div class="card-ttl">Comparativa por chatter</div></div>
     <table class="tbl"><thead><tr><th>Chatter</th><th>Equipo</th><th>Turno</th><th>Modelos</th><th>Hrs</th><th>Tiempo/modelo</th><th>Facturado</th><th>Comisión 5%</th><th>Comisión lunes 8%</th><th>Costo hrs</th><th>Costo total</th><th>Profit</th><th>Margen</th></tr></thead>
@@ -1672,7 +1675,19 @@ function renderPerf(){
   const teamsToShow=team==='all'?(SC.teams||[]).filter(t=>allTeamIds.includes(t.id)):[(SC.teams||[]).find(t=>t.id===team)].filter(Boolean);
   if(!teamsToShow.length){te.innerHTML=emptyRow(8,'🏷️','Sin equipos con datos');return;}
   const {pph:ePPH}=getCfg();
-  te.innerHTML=teamsToShow.map(tObj=>{
+  // Sort equipos también
+  const sortedTeams=[...teamsToShow].sort((a,b)=>{
+    const ra=rows.filter(r=>r.c.equipo===a.id);
+    const rb=rows.filter(r=>r.c.equipo===b.id);
+    const sumFac=(rs)=>rs.reduce((s,r)=>s+r.fac,0);
+    const sumHrs=(rs)=>rs.reduce((s,r)=>s+r.hrs,0);
+    const sumProfit=(rs)=>rs.reduce((s,r)=>s+r.profit,0);
+    if(sortBy==='fac_desc'||sortBy==='fac_asc'){const d=sumFac(rb)-sumFac(ra);return sortBy==='fac_asc'?-d:d;}
+    if(sortBy==='hrs_desc'||sortBy==='hrs_asc'){const d=sumHrs(rb)-sumHrs(ra);return sortBy==='hrs_asc'?-d:d;}
+    if(sortBy==='profit_desc'||sortBy==='profit_asc'){const d=sumProfit(rb)-sumProfit(ra);return sortBy==='profit_asc'?-d:d;}
+    return 0;
+  });
+  te.innerHTML=sortedTeams.map(tObj=>{
     const eq=tObj.id;
     const ec=(SC.chatters||[]).filter(c=>c.equipo===eq);
     const em=(SC.modelos||[]).filter(m=>m.team===eq&&m.estado==='activa');
