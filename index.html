@@ -494,11 +494,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <label>Facturación por modelo</label>
       <div id="ing-modelos-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
     </div>
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:var(--r-sm);padding:12px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="checkbox" id="ing-lunes-check" onchange="updIngCalc()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--amber)"/>
+        <label for="ing-lunes-check" style="font-size:13px;color:var(--amber);font-weight:500;cursor:pointer">¿Trabajó algún lunes? (comisión 8%)</label>
+      </div>
+      <div id="ing-lunes-wrap" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Facturado el lunes:</label>
+          <input class="fi" type="number" id="ing-lunes-monto" placeholder="0" style="max-width:140px" oninput="updIngCalc()"/>
+          <span style="font-size:12px;color:var(--text3)">→ Comisión 8%: <strong id="ing-lunes-com" style="color:var(--amber)">$0.00</strong></span>
+        </div>
+      </div>
+    </div>
     <div class="calc-box">
       <div class="calc-row"><span style="color:var(--text3)">Total facturado:</span><strong id="ing-calc-total">$0.00</strong></div>
-      <div class="calc-row"><span style="color:var(--text3)">Comisión 5%:</span><strong id="ing-calc-com">$0.00</strong></div>
+      <div class="calc-row"><span style="color:var(--text3)">Comisión días normales (5%):</span><strong id="ing-calc-com">$0.00</strong></div>
+      <div class="calc-row"><span style="color:var(--text3)">Comisión lunes (8%):</span><strong id="ing-calc-com-lunes" style="color:var(--amber)">$0.00</strong></div>
+      <div class="calc-row"><span style="color:var(--text3)">Comisión total:</span><strong id="ing-calc-com-total">$0.00</strong></div>
       <div class="calc-row"><span style="color:var(--text3)">Costo horas ($2/h):</span><strong id="ing-calc-hrs">$0.00</strong></div>
-      <div class="calc-row"><span style="color:var(--text3)">Tiempo promedio/modelo:</span><strong id="ing-calc-tpm">—</strong></div>
+      <div class="calc-row"><span style="color:var(--text3)">Tiempo promedio/modelo:</span><strong id="ing-calc-tpm" style="color:var(--green)">—</strong></div>
     </div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-ing')">Cancelar</button><button class="btn btn-primary" onclick="saveIngreso()">Guardar</button></div>
   </div>
@@ -862,16 +877,21 @@ function prepIng(){
   const day=parseInt(today().split('-')[2]);sv('m-ing-q',day<=15?'q1':'q2');
   fillSel('m-ing-cht',(SC.chatters||[]).map(c=>({v:c.id,l:c.nombre})),'Seleccionar chatter...');
   document.getElementById('ing-modelos-list').innerHTML='<div style="color:var(--text3);font-size:13px">Seleccioná un chatter primero.</div>';
+  const lc=document.getElementById('ing-lunes-check');if(lc)lc.checked=false;
+  sv('ing-lunes-monto','');
   updIngCalc();
 }
 function updIngMdls(){
   const cid=gv('m-ing-cht');
-  const mods=(SC.modelos||[]).filter(m=>m.chatter===cid&&m.estado==='activa');
+  const cht=(SC.chatters||[]).find(c=>c.id===cid);
+  // Modelos del team del chatter
+  const mods=(SC.modelos||[]).filter(m=>m.team===cht?.equipo&&m.estado==='activa');
   const list=document.getElementById('ing-modelos-list');
-  if(!mods.length){list.innerHTML='<div style="color:var(--text3);font-size:13px">Este chatter no tiene modelos activas.</div>';return;}
+  if(!cid){list.innerHTML='<div style="color:var(--text3);font-size:13px">Seleccioná un chatter primero.</div>';return;}
+  if(!mods.length){list.innerHTML='<div style="color:var(--text3);font-size:13px">El team de este chatter no tiene modelos activas asignadas.</div>';return;}
   list.innerHTML=mods.map(m=>`
     <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:var(--r-sm);padding:8px 12px">
-      <span style="font-size:13px;min-width:150px"><strong>${m.nombre}</strong> <span style="color:var(--text3);font-size:11px">${m.plataforma||''}</span></span>
+      <span style="font-size:13px;min-width:150px"><strong>${m.nombre}</strong>${m.nicho?` <span class="badge bg-amber" style="font-size:10px">${m.nicho}</span>`:''}</span>
       <label style="font-size:11px;color:var(--text3);white-space:nowrap">USD facturado:</label>
       <input class="fi" type="number" id="ing-mdl-${m.id}" placeholder="0" style="max-width:110px" oninput="updIngCalc()"/>
     </div>`).join('');
@@ -879,14 +899,29 @@ function updIngMdls(){
 }
 function updIngCalc(){
   const cid=gv('m-ing-cht');
+  const cht=(SC.chatters||[]).find(c=>c.id===cid);
   const hrs=parseFloat(gv('m-ing-hrs'))||0;
-  const mods=(SC.modelos||[]).filter(m=>m.chatter===cid&&m.estado==='activa');
-  let total=0;
-  mods.forEach(m=>{total+=parseFloat(document.getElementById('ing-mdl-'+m.id)?.value||0);});
-  const com=total*0.05;const costoH=hrs*PPH;
-  const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h promedio':'—';
+  // Modelos del team
+  const mods=(SC.modelos||[]).filter(m=>m.team===cht?.equipo&&m.estado==='activa');
+  let totalMdls=0;
+  mods.forEach(m=>{totalMdls+=parseFloat(document.getElementById('ing-mdl-'+m.id)?.value||0);});
+  // Lunes
+  const trabajoLunes=document.getElementById('ing-lunes-check')?.checked||false;
+  document.getElementById('ing-lunes-wrap').style.display=trabajoLunes?'':'none';
+  const lunesMonto=trabajoLunes?(parseFloat(gv('ing-lunes-monto'))||0):0;
+  const lunesCom=lunesMonto*0.08;
+  const normalMonto=totalMdls-lunesMonto;
+  const normalCom=normalMonto*0.05;
+  const totalCom=normalCom+lunesCom;
+  const total=totalMdls;
+  const costoH=hrs*PPH;
+  // TPM automático: horas / cantidad de modelos del team
+  const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':mods.length>0?'Cargá las horas':'—';
+  if(document.getElementById('ing-lunes-com'))document.getElementById('ing-lunes-com').textContent=fMon(lunesCom);
   document.getElementById('ing-calc-total').textContent=fMon(total);
-  document.getElementById('ing-calc-com').textContent=fMon(com);
+  document.getElementById('ing-calc-com').textContent=fMon(normalCom);
+  if(document.getElementById('ing-calc-com-lunes'))document.getElementById('ing-calc-com-lunes').textContent=fMon(lunesCom);
+  if(document.getElementById('ing-calc-com-total'))document.getElementById('ing-calc-com-total').textContent=fMon(totalCom);
   document.getElementById('ing-calc-hrs').textContent=fMon(costoH);
   document.getElementById('ing-calc-tpm').textContent=tpm;
 }
@@ -894,10 +929,16 @@ async function saveIngreso(){
   const id=gv('m-ing-id');const cid=gv('m-ing-cht');const fecha=gv('m-ing-fecha');const hrs=parseFloat(gv('m-ing-hrs'))||0;
   if(!fecha||!cid){toast('Completá fecha y chatter','err');return;}
   const cht=(SC.chatters||[]).find(c=>c.id===cid);
-  const mods=(SC.modelos||[]).filter(m=>m.chatter===cid&&m.estado==='activa');
+  const mods=(SC.modelos||[]).filter(m=>m.team===cht?.equipo&&m.estado==='activa');
   const fac={};let total=0;
   mods.forEach(m=>{const v=parseFloat(document.getElementById('ing-mdl-'+m.id)?.value||0);fac[m.id]=v;total+=v;});
-  const obj={id:id||uid(),fecha,quincena:gv('m-ing-q'),chatter_id:cid,chatter_nombre:cht?.nombre||'',equipo:cht?.equipo||'',horas:hrs,facturacion:fac,total_facturado:total,comision:total*0.05,costo_horas:hrs*PPH,tpm:mods.length>0?(hrs/mods.length):0};
+  const trabajoLunes=document.getElementById('ing-lunes-check')?.checked||false;
+  const lunesMonto=trabajoLunes?(parseFloat(gv('ing-lunes-monto'))||0):0;
+  const lunesCom=lunesMonto*0.08;
+  const normalCom=(total-lunesMonto)*0.05;
+  const totalCom=normalCom+lunesCom;
+  const tpmCalc=mods.length>0&&hrs>0?(hrs/mods.length):0;
+  const obj={id:id||uid(),fecha,quincena:gv('m-ing-q'),chatter_id:cid,chatter_nombre:cht?.nombre||'',equipo:cht?.equipo||'',horas:hrs,facturacion:fac,total_facturado:total,lunes:trabajoLunes,lunes_monto:lunesMonto,lunes_comision:lunesCom,comision:totalCom,comision_normal:normalCom,costo_horas:hrs*PPH,tpm:tpmCalc};
   ensureArr('ingresos');
   SC.ingresos=id?SC.ingresos.map(x=>x.id===id?obj:x):[...SC.ingresos,obj];
   await save();renderIngresos();renderDash();closeModal('m-ing');toast('Ingreso guardado');
