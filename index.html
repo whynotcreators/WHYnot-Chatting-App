@@ -503,7 +503,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="ptab" onclick="fTar('completada',this)">Completadas</div>
   </div>
   <div class="card">
-    <table class="tbl"><thead><tr><th>Tarea</th><th>Asignado a</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>Tarea</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th></th></tr></thead>
     <tbody id="tbody-tar"></tbody></table>
   </div>
 </div>
@@ -783,10 +783,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="mhdr"><div class="mttl" id="m-tar-ttl">Nueva tarea</div><button class="mx" onclick="closeModal('m-tar')">×</button></div>
     <input type="hidden" id="m-tar-id"/>
     <div class="fg"><label>Tarea</label><input class="fi" id="m-tar-titulo" placeholder="Descripción de la tarea..."/></div>
-    <div class="fr2">
-      <div class="fg"><label>Asignado a</label><input class="fi" id="m-tar-asig" placeholder="Nombre..."/></div>
-      <div class="fg"><label>Prioridad</label><select class="fs" id="m-tar-prio"><option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option></select></div>
-    </div>
+    <div class="fg"><label>Prioridad</label><select class="fs" id="m-tar-prio"><option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option></select></div>
     <div class="fr2">
       <div class="fg"><label>Fecha límite</label><input class="fi" type="date" id="m-tar-fecha"/></div>
       <div class="fg"><label>Estado</label><select class="fs" id="m-tar-est"><option value="pendiente">Pendiente</option><option value="completada">Completada</option></select></div>
@@ -1743,11 +1740,11 @@ async function delEvento(id){if(!confirm('¿Eliminar?'))return;SC.agenda=(SC.age
 
 // TAREAS
 function fTar(f,el){tarF=f;document.querySelectorAll('#page-tareas .ptab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderTareas();}
-function prepTar(){sv('m-tar-ttl','Nueva tarea');['m-tar-id','m-tar-titulo','m-tar-asig','m-tar-fecha'].forEach(id=>sv(id,''));sv('m-tar-prio','media');sv('m-tar-est','pendiente');}
-function editTarea(id){const t=(SC.tareas||[]).find(x=>x.id===id);if(!t)return;sv('m-tar-ttl','Editar tarea');sv('m-tar-id',id);sv('m-tar-titulo',t.titulo);sv('m-tar-asig',t.asignado||'');sv('m-tar-prio',t.prioridad||'media');sv('m-tar-fecha',t.fecha||'');sv('m-tar-est',t.estado||'pendiente');document.getElementById('m-tar').classList.add('open');}
+function prepTar(){sv('m-tar-ttl','Nueva tarea');['m-tar-id','m-tar-titulo','m-tar-fecha'].forEach(id=>sv(id,''));sv('m-tar-prio','media');sv('m-tar-est','pendiente');}
+function editTarea(id){const t=(SC.tareas||[]).find(x=>x.id===id);if(!t)return;sv('m-tar-ttl','Editar tarea');sv('m-tar-id',id);sv('m-tar-titulo',t.titulo);sv('m-tar-prio',t.prioridad||'media');sv('m-tar-fecha',t.fecha||'');sv('m-tar-est',t.estado||'pendiente');document.getElementById('m-tar').classList.add('open');}
 async function saveTarea(){
   const id=gv('m-tar-id');
-  const obj={id:id||uid(),titulo:gv('m-tar-titulo'),asignado:gv('m-tar-asig'),prioridad:gv('m-tar-prio'),fecha:gv('m-tar-fecha'),estado:gv('m-tar-est')};
+  const obj={id:id||uid(),titulo:gv('m-tar-titulo'),prioridad:gv('m-tar-prio'),fecha:gv('m-tar-fecha'),estado:gv('m-tar-est')};
   if(!obj.titulo){toast('Ingresá la tarea','err');return;}
   ensureArr('tareas');SC.tareas=id?SC.tareas.map(x=>x.id===id?obj:x):[...SC.tareas,obj];
   await save();renderTareas();closeModal('m-tar');toast('Tarea guardada');
@@ -1756,11 +1753,10 @@ async function toggleTarea(id){const t=(SC.tareas||[]).find(x=>x.id===id);if(!t)
 function renderTareas(){
   let all=SC.tareas||[];if(tarF!=='todas')all=all.filter(t=>t.estado===tarF);
   const tb=document.getElementById('tbody-tar');
-  if(!all.length){tb.innerHTML=emptyRow(6,'✅','Sin tareas');return;}
+  if(!all.length){tb.innerHTML=emptyRow(5,'✅','Sin tareas');return;}
   const pm={baja:'bg-blue',media:'bg-amber',alta:'bg-red'};
   tb.innerHTML=all.map(t=>`<tr>
     <td>${t.estado==='completada'?`<s style="color:var(--text3)">${t.titulo}</s>`:t.titulo}</td>
-    <td>${t.asignado||'—'}</td>
     <td><span class="badge ${pm[t.prioridad]||'bg-blue'}">${t.prioridad||'baja'}</span></td>
     <td>${fDate(t.fecha)}</td>
     <td>${t.estado==='completada'?'<span class="badge bg-green">Completada</span>':'<span class="badge bg-amber">Pendiente</span>'}</td>
