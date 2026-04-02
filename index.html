@@ -125,6 +125,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </style>
 </head>
 <body>
+<!-- LOGIN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:360px">
+    <div style="font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Chatting App</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:28px">WHYnot Creators</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:block;margin-bottom:6px">Usuario</label>
+      <input class="fi" type="text" id="login-user" placeholder="tu usuario" autocomplete="username"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);display:block;margin-bottom:6px">Contraseña</label>
+      <input class="fi" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button onclick="doLogin()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-sm);padding:11px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;font-family:var(--font)">Ingresar</button>
+    <div id="login-err" style="font-size:12px;color:var(--red);text-align:center;margin-top:12px;display:none"></div>
+  </div>
+</div>
+
 <div class="layout">
 <nav class="sidebar">
   <div class="sb-top">
@@ -868,6 +886,24 @@ const SBH={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'appl
 async function sbGet(){const r=await fetch(`${SB_URL}/rest/v1/chatting_state?id=eq.main&select=data`,{headers:SBH});const d=await r.json();return d[0]?.data||{};}
 async function sbSave(){await fetch(`${SB_URL}/rest/v1/chatting_state?id=eq.main`,{method:'PATCH',headers:SBH,body:JSON.stringify({data:SC})});}
 
+function doLogin(){
+  const usuario=document.getElementById('login-user')?.value?.trim();
+  const pass=document.getElementById('login-pass')?.value?.trim();
+  const err=document.getElementById('login-err');
+  const user=(SC.usuarios||[]).find(u=>u.usuario===usuario&&u.pass===pass);
+  if(!user){if(err){err.textContent='Usuario o contraseña incorrectos';err.style.display='';}return;}
+  CU=user;
+  // Registrar último acceso
+  SC.usuarios=SC.usuarios.map(u=>u.id===user.id?{...u,ultimo_acceso:new Date().toISOString()}:u);
+  sbSave();
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('sb-nm').textContent=CU.nombre||CU.usuario;
+  document.getElementById('sb-av').textContent=(CU.nombre||CU.usuario)[0].toUpperCase();
+  document.getElementById('sb-rl').textContent=rolNm(CU.rol);
+  applyRoleAccess();
+  fillPerfMes();fillTeamSelects();renderAll();
+}
+
 async function init(){
   try{
     SC=await sbGet();
@@ -876,18 +912,27 @@ async function init(){
       SC.solicitudes=SC.solicitudes.map(s=>s.estado==='produccion'?{...s,estado:'solicitada'}:s);
     }
     if(!SC.usuarios)SC.usuarios=[{id:'usr_admin',usuario:'admin',pass:'whynot2025',nombre:'Admin',rol:'admin',creado:'2026-01-01'}];
-    CU=SC.usuarios.find(u=>u.rol==='admin')||SC.usuarios[0];
+    CU=SC.usuarios[0]; // fallback
+    // Buscar usuario por sesión — por ahora usa el primero disponible
+    // (el login se agrega después)
     document.getElementById('sb-nm').textContent=CU.nombre||CU.usuario;
     document.getElementById('sb-av').textContent=(CU.nombre||CU.usuario)[0].toUpperCase();
     document.getElementById('sb-rl').textContent=rolNm(CU.rol);
-    if(CU.rol==='admin'||CU.rol==='tl'){document.getElementById('sb-admin').style.display='';}
-    if(CU.rol==='admin'){document.getElementById('stab-tipos').style.display='';document.getElementById('stab-nichos').style.display='';document.getElementById('stab-config').style.display='';}
-    fillPerfMes();fillTeamSelects();renderAll();
+    applyRoleAccess();
+    // Mostrar login
+    document.getElementById('login-screen').style.display='flex';
+    // Enter en login
+    document.getElementById('login-pass')?.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+    document.getElementById('login-user')?.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   }catch(e){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px"><div style="color:#e24b4a;font-size:16px">Error de conexión</div><div style="color:#666;font-size:13px">'+e.message+'</div></div>';}
 }
 document.addEventListener('DOMContentLoaded',init);
 
 function goSec(sec,el){
+  // Verificar acceso por rol
+  const rol=CU?.rol||'cm';
+  if(rol==='cm'&&sec!=='solicitudes')return;
+  if(rol==='tl'&&sec==='usuarios')return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
   document.getElementById('page-'+sec).classList.add('active');
@@ -975,6 +1020,65 @@ function fillPerfMes(){
   const cur=new Date();
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
+// ── CONTROL DE ACCESO POR ROL ──
+// admin  → todo
+// tl     → todo menos Usuarios/Configuración
+// cm     → solo Solicitudes
+
+function applyRoleAccess(){
+  const rol=CU?.rol||'cm';
+
+  // Sidebar items — ocultar según rol
+  const seccionesAdmin=['usuarios']; // solo admin
+  const seccionesTL=['dashboard','ingresos','pagos','chatters','modelos','solicitudes','candidatos','rendimiento','agenda','tareas','teams']; // TL y admin
+  const seccionesCM=['solicitudes']; // solo CM
+
+  // Ocultar todos los sb-items primero (para CM)
+  if(rol==='cm'){
+    // CM: ocultar todo excepto solicitudes
+    document.querySelectorAll('.sb-item').forEach(el=>{
+      const onclick=el.getAttribute('onclick')||'';
+      const esSolicitudes=onclick.includes("'solicitudes'");
+      el.style.display=esSolicitudes?'':'none';
+    });
+    // Ocultar grupos del sidebar
+    document.querySelectorAll('.sb-grp, .sb-sep').forEach(el=>el.style.display='none');
+    // Solo mostrar el grupo de solicitudes
+    document.getElementById('sb-admin').style.display='none';
+  } else if(rol==='tl'){
+    // TL: mostrar todo menos usuarios
+    document.querySelectorAll('.sb-item').forEach(el=>el.style.display='');
+    document.querySelectorAll('.sb-grp, .sb-sep').forEach(el=>el.style.display='');
+    document.getElementById('sb-admin').style.display='none'; // ocultar sección config
+  } else {
+    // Admin: mostrar todo
+    document.querySelectorAll('.sb-item').forEach(el=>el.style.display='');
+    document.querySelectorAll('.sb-grp, .sb-sep').forEach(el=>el.style.display='');
+    document.getElementById('sb-admin').style.display='';
+    document.getElementById('stab-tipos').style.display='';
+    document.getElementById('stab-nichos').style.display='';
+    document.getElementById('stab-config').style.display='';
+  }
+
+  // Página inicial según rol
+  if(rol==='cm'){
+    // CM ve directamente solicitudes
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-solicitudes')?.classList.add('active');
+    document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  }
+
+  // Botón + Nueva solicitud: CM puede usarlo, TL también
+  // El resto de botones de edición: CM NO puede editar nada excepto cambiar estado
+  if(rol==='cm'){
+    // CM no puede crear/editar — solo cambiar estado
+    // Ocultar botón nueva solicitud para CM? No, el CM sí puede verlas y avanzar estados
+    // pero NO puede crear nuevas (eso es el TL)
+    const btnNueva=document.querySelector('#page-solicitudes .btn-primary');
+    if(btnNueva)btnNueva.style.display='none';
+  }
+}
+
 function getTeamNm(id){return(SC.teams||[]).find(t=>t.id===id)?.nombre||id||'—';}
 
 // TL helpers
