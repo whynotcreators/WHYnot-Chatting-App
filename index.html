@@ -308,9 +308,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="ph-l"><div class="pt">Modelos</div><div class="ps">Modelos en la plataforma</div></div>
     <button class="btn btn-primary" onclick="openModal('m-mdl')">+ Nueva modelo</button>
   </div>
-  <div class="sbar"><input class="sinp" id="q-mdl" placeholder="Buscar modelo..." oninput="renderModelos()"/></div>
+  <div class="sbar">
+    <input class="sinp" id="q-mdl" placeholder="Buscar modelo..." oninput="renderModelos()"/>
+    <select class="fs" id="mdl-nicho-filter" onchange="renderModelos()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los nichos</option></select>
+  </div>
   <div class="card">
-    <table class="tbl"><thead><tr><th>Nombre</th><th>Team</th><th>Chatters</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Nicho</th><th>Team</th><th>Chatters</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
     <tbody id="tbody-mdl"></tbody></table>
   </div>
 </div>
@@ -429,6 +432,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="stabs">
       <div class="stab active" onclick="goStab('usuarios','lista',this)">Lista</div>
       <div class="stab" id="stab-tipos" onclick="goStab('usuarios','tipos',this)" style="display:none">Tipos de contenido</div>
+      <div class="stab" id="stab-nichos" onclick="goStab('usuarios','nichos',this)" style="display:none">Nichos</div>
       <div class="stab" onclick="goStab('usuarios','nuevo',this)">+ Nuevo usuario</div>
     </div>
     <div class="stab-content active" id="usuarios-lista">
@@ -442,6 +446,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <button class="btn btn-primary btn-sm" onclick="addTipo()">+ Agregar</button>
       </div>
       <div id="tipos-list"></div>
+    </div>
+    <div class="stab-content" id="usuarios-nichos">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Nichos que aparecen al crear o editar una modelo.</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input class="fi" id="nicho-inp" placeholder="Ej: Fitness, Lifestyle, Gaming..." style="max-width:320px" onkeydown="if(event.key==='Enter')addNicho()"/>
+        <button class="btn btn-primary btn-sm" onclick="addNicho()">+ Agregar</button>
+      </div>
+      <div id="nichos-list"></div>
     </div>
     <div class="stab-content" id="usuarios-nuevo">
       <div style="max-width:440px">
@@ -545,6 +557,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est"><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select></div>
     </div>
     <div class="fg"><label>Team</label><select class="fs" id="m-mdl-team"></select></div>
+    <div class="fr2">
+      <div class="fg"><label>Nicho</label><select class="fs" id="m-mdl-nicho"></select></div>
+      <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est2" style="display:none"></select></div>
+    </div>
     <div class="fg"><label>Notas</label><textarea class="fta" id="m-mdl-notas" placeholder="Notas adicionales..."></textarea></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-mdl')">Cancelar</button><button class="btn btn-primary" onclick="saveModelo()">Guardar</button></div>
   </div>
@@ -659,6 +675,7 @@ let SC={},CU={id:'default',nombre:'Admin',usuario:'admin',rol:'admin'};
 let solF='todas',candF='todos',tarF='todas',anualChart=null;
 const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const TIPOS_DEF=['📝 Script','📷 Selfie Tranquila (Soft)','🔥 Selfie Caliente (Horny)','Ass Content','Tits Content','Feet Content','Customs Request','Para Masivos','Personalizado','Otro'];
+const NICHOS_DEF=['Fitness', 'Lifestyle', 'Gaming', 'Arte', 'Música', 'Cocina', 'Viajes', 'Moda', 'Belleza', 'Entretenimiento', 'Otro'];
 const SBH={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
 
 async function sbGet(){const r=await fetch(`${SB_URL}/rest/v1/chatting_state?id=eq.main&select=data`,{headers:SBH});const d=await r.json();return d[0]?.data||{};}
@@ -673,7 +690,7 @@ async function init(){
     document.getElementById('sb-av').textContent=(CU.nombre||CU.usuario)[0].toUpperCase();
     document.getElementById('sb-rl').textContent=rolNm(CU.rol);
     if(CU.rol==='admin'||CU.rol==='tl'){document.getElementById('sb-admin').style.display='';}
-    if(CU.rol==='admin'){document.getElementById('stab-tipos').style.display='';}
+    if(CU.rol==='admin'){document.getElementById('stab-tipos').style.display='';document.getElementById('stab-nichos').style.display='';}
     fillPerfMes();fillTeamSelects();renderAll();
   }catch(e){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px"><div style="color:#e24b4a;font-size:16px">Error de conexión</div><div style="color:#666;font-size:13px">'+e.message+'</div></div>';}
 }
@@ -745,12 +762,23 @@ function fillTeamSelects(){
   const mdlTeam=document.getElementById('m-mdl-team');
   if(mdlTeam){const cur=mdlTeam.value;mdlTeam.innerHTML='<option value="">Seleccionar team...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
 }
+function fillNichoSelect(id, selected=''){
+  const nichos=SC.nichos?.length?SC.nichos:NICHOS_DEF;
+  const sel=document.getElementById(id);if(!sel)return;
+  sel.innerHTML='<option value="">Sin nicho</option>'+nichos.map(n=>`<option value="${n}" ${n===selected?'selected':''}>${n}</option>`).join('');
+}
+function fillNichoFilter(){
+  const nichos=SC.nichos?.length?SC.nichos:NICHOS_DEF;
+  const sel=document.getElementById('mdl-nicho-filter');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Todos los nichos</option>'+nichos.map(n=>`<option value="${n}" ${n===cur?'selected':''}>${n}</option>`).join('');
+}
 function fillPerfMes(){
   const sel=document.getElementById('perf-mes');if(!sel)return;
   const cur=new Date();
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
-function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();updateBadgeSol();fillTeamSelects();}
+function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();}
 
 // DASHBOARD
 function renderDash(){
@@ -994,22 +1022,24 @@ function renderChatters(){
 async function delChatter(id){if(!confirm('¿Eliminar?'))return;SC.chatters=(SC.chatters||[]).filter(x=>x.id!==id);await save();renderChatters();renderDash();toast('Eliminado');}
 
 // MODELOS
-function prepMdl(){sv('m-mdl-ttl','Nueva modelo');['m-mdl-id','m-mdl-nombre','m-mdl-notas'].forEach(id=>sv(id,''));sv('m-mdl-est','activa');fillTeamSelects();sv('m-mdl-team','');}
-function editModelo(id){const m=(SC.modelos||[]).find(x=>x.id===id);if(!m)return;sv('m-mdl-ttl','Editar modelo');sv('m-mdl-id',id);sv('m-mdl-nombre',m.nombre);sv('m-mdl-est',m.estado||'activa');sv('m-mdl-notas',m.notas||'');fillTeamSelects();sv('m-mdl-team',m.team||'');document.getElementById('m-mdl').classList.add('open');}
+function prepMdl(){sv('m-mdl-ttl','Nueva modelo');['m-mdl-id','m-mdl-nombre','m-mdl-notas'].forEach(id=>sv(id,''));sv('m-mdl-est','activa');fillTeamSelects();sv('m-mdl-team','');fillNichoSelect('m-mdl-nicho');}
+function editModelo(id){const m=(SC.modelos||[]).find(x=>x.id===id);if(!m)return;sv('m-mdl-ttl','Editar modelo');sv('m-mdl-id',id);sv('m-mdl-nombre',m.nombre);sv('m-mdl-est',m.estado||'activa');sv('m-mdl-notas',m.notas||'');fillTeamSelects();sv('m-mdl-team',m.team||'');fillNichoSelect('m-mdl-nicho',m.nicho||'');document.getElementById('m-mdl').classList.add('open');}
 async function saveModelo(){
   const id=gv('m-mdl-id');
-  const obj={id:id||uid(),nombre:gv('m-mdl-nombre'),team:gv('m-mdl-team'),estado:gv('m-mdl-est'),notas:gv('m-mdl-notas')};
+  const obj={id:id||uid(),nombre:gv('m-mdl-nombre'),team:gv('m-mdl-team'),nicho:gv('m-mdl-nicho'),estado:gv('m-mdl-est'),notas:gv('m-mdl-notas')};
   if(!obj.nombre){toast('Ingresá el nombre','err');return;}
   ensureArr('modelos');SC.modelos=id?SC.modelos.map(x=>x.id===id?obj:x):[...SC.modelos,obj];
   await save();renderModelos();renderTeams();renderChatters();renderDash();closeModal('m-mdl');toast('Modelo guardada');
 }
 function renderModelos(){
+  fillNichoFilter();
   const q=(document.getElementById('q-mdl')?.value||'').toLowerCase();
-  const all=(SC.modelos||[]).filter(m=>!q||m.nombre.toLowerCase().includes(q));
+  const nf=document.getElementById('mdl-nicho-filter')?.value||'';
+  const all=(SC.modelos||[]).filter(m=>(!q||m.nombre.toLowerCase().includes(q))&&(!nf||m.nicho===nf));
   const tb=document.getElementById('tbody-mdl');
   if(!all.length){tb.innerHTML=emptyRow(6,'⭐','Sin modelos registradas');return;}
   tb.innerHTML=all.map(m=>{const tm=(SC.teams||[]).find(t=>t.id===m.team);const teamChts=(SC.chatters||[]).filter(c=>c.equipo===m.team);const teamChtsStr=teamChts.length?teamChts.map(c=>c.nombre).join(', '):'—';return`<tr>
-    <td><strong>${m.nombre}</strong></td><td>${tm?`<span class="badge bg-purple">${tm.nombre}</span>`:'—'}</td>
+    <td><strong>${m.nombre}</strong></td><td>${m.nicho?`<span class="badge bg-amber">${m.nicho}</span>`:'—'}</td><td>${tm?`<span class="badge bg-purple">${tm.nombre}</span>`:'—'}</td>
     <td style="font-size:12px;color:var(--text2)">${teamChtsStr}</td>
     <td>${m.estado==='activa'?'<span class="badge bg-green">Activa</span>':'<span class="badge bg-red">Inactiva</span>'}</td>
     <td style="font-size:12px;color:var(--text2);max-width:180px">${m.notas||'—'}</td>
@@ -1242,6 +1272,21 @@ async function crearUsr(){const n=gv('nu-nombre'),u=gv('nu-usuario'),p=gv('nu-pa
 async function delUsr(id){if(!confirm('¿Eliminar?'))return;SC.usuarios=(SC.usuarios||[]).filter(x=>x.id!==id);await save();renderUsuarios();toast('Eliminado');}
 
 // TIPOS CONTENIDO
+function renderNichos(){
+  const nichos=SC.nichos?.length?SC.nichos:NICHOS_DEF;
+  const c=document.getElementById('nichos-list');if(!c)return;
+  c.innerHTML=nichos.map((n,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;max-width:420px">
+      <span style="flex:1;font-size:13px">${n}</span>
+      <button class="bti" onclick="moveNicho(${i},-1)">↑</button>
+      <button class="bti" onclick="moveNicho(${i},1)">↓</button>
+      <button class="bti" style="color:var(--red)" onclick="delNicho(${i})">×</button>
+    </div>`).join('')||'<div style="color:var(--text3);font-size:13px">Sin nichos.</div>';
+}
+async function addNicho(){const v=gv('nicho-inp');if(!v)return;if(!SC.nichos)SC.nichos=[...NICHOS_DEF];SC.nichos.push(v);sv('nicho-inp','');await save();renderNichos();fillNichoFilter();toast('Nicho agregado');}
+async function delNicho(i){if(!confirm('¿Eliminar?'))return;if(!SC.nichos)SC.nichos=[...NICHOS_DEF];SC.nichos.splice(i,1);await save();renderNichos();fillNichoFilter();toast('Eliminado');}
+async function moveNicho(i,d){if(!SC.nichos)SC.nichos=[...NICHOS_DEF];const a=SC.nichos,ni=i+d;if(ni<0||ni>=a.length)return;[a[i],a[ni]]=[a[ni],a[i]];await save();renderNichos();}
+
 function renderTipos(){
   const tipos=SC.tiposContenido?.length?SC.tiposContenido:TIPOS_DEF;
   document.getElementById('tipos-list').innerHTML=tipos.map((t,i)=>`
