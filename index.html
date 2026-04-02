@@ -215,6 +215,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="kcard"><div class="lbl">Chatters activos</div><div class="val" id="kpi-cht">0</div><div class="hint"><span class="dot" style="background:var(--blue)"></span>en equipo</div></div>
     <div class="kcard"><div class="lbl">Modelos activas</div><div class="val" id="kpi-mdl">0</div><div class="hint"><span class="dot" style="background:var(--accent)"></span>en plataforma</div></div>
   </div>
+  <!-- Bloque Team Leader -->
+  <div class="card" style="margin-bottom:20px;border-color:rgba(108,99,255,.4)">
+    <div class="card-hdr" style="background:rgba(108,99,255,.06)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="card-ttl">💼 Comisión Team Leader</div>
+        <span style="font-size:12px;color:var(--text3)">8% sobre ingresos totales · Se paga el día 1 a mes vencido</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:var(--text3)" id="tl-nombre-dash">—</span>
+        <span class="badge" id="tl-estado-dash" style="background:rgba(245,158,11,.15);color:var(--amber)">Pendiente</span>
+      </div>
+    </div>
+    <div class="card-body" style="padding:16px 20px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">Ingresos del mes</div>
+          <div style="font-size:22px;font-weight:700" id="tl-ingresos-mes">$0.00</div>
+        </div>
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">Comisión TL (8%)</div>
+          <div style="font-size:22px;font-weight:700;color:var(--accent)" id="tl-comision">$0.00</div>
+        </div>
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">Próximo pago</div>
+          <div style="font-size:22px;font-weight:700" id="tl-proximo-pago">—</div>
+        </div>
+        <div style="display:flex;align-items:center">
+          <button id="tl-btn-pagar" class="btn btn-primary" onclick="pagarTL()" style="display:none">✓ Marcar pagado al TL</button>
+          <span id="tl-pagado-info" style="display:none;font-size:13px;color:var(--green)">✓ Pagado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr">
       <div class="card-ttl">Rendimiento anual</div>
@@ -285,6 +319,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="kcard"><div class="lbl">Pendiente de pago</div><div class="val" id="pago-pendiente" style="color:var(--amber)">$0</div></div>
     <div class="kcard"><div class="lbl">Ya pagado</div><div class="val" id="pago-pagado" style="color:var(--green)">$0</div></div>
   </div>
+  <!-- Pago TL -->
+  <div class="card" style="margin-bottom:20px;border-color:rgba(108,99,255,.4)">
+    <div class="card-hdr" style="background:rgba(108,99,255,.06)">
+      <div class="card-ttl">💼 Pago Team Leader</div>
+    </div>
+    <div id="pagos-tl-body" style="padding:16px 20px"></div>
+  </div>
+
   <div class="card">
     <div class="card-hdr">
       <div class="card-ttl">Liquidaciones por chatter</div>
@@ -505,6 +547,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
             <input class="fi" type="number" id="cfg-com-lunes" placeholder="8" min="0" max="100" style="max-width:120px"/>
             <span style="font-size:12px;color:var(--text3)">% sobre lo facturado los lunes</span>
           </div>
+        </div>
+        <div class="fg">
+          <label>Comisión Team Leader (%)</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="fi" type="number" id="cfg-com-tl" placeholder="8" min="0" max="100" style="max-width:120px"/>
+            <span style="font-size:12px;color:var(--text3)">% sobre ingresos totales del mes</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Wallet del Team Leader</label>
+          <input class="fi" id="cfg-tl-wallet" placeholder="Dirección de wallet o banco del TL..."/>
         </div>
         <button class="btn btn-primary" onclick="saveConfig()">Guardar configuración</button>
         <div style="margin-top:16px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-sm);font-size:12px;color:var(--text3)">
@@ -788,7 +841,7 @@ function goSec(sec,el){
   if(sec==='rendimiento')renderPerf();
   if(sec==='dashboard')renderDash();
   if(sec==='teams')renderTeams();
-  if(sec==='pagos')renderPagos();
+  if(sec==='pagos'){renderPagos();renderPagosTL();}
 }
 function goStab(section,tab,el){
   if(tab==='config')loadConfig();
@@ -868,6 +921,111 @@ function fillPerfMes(){
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
 function getTeamNm(id){return(SC.teams||[]).find(t=>t.id===id)?.nombre||id||'—';}
+
+// TL helpers
+function getTLUser(){return (SC.usuarios||[]).find(u=>u.rol==='tl');}
+function getTLComision(){
+  const cfg=SC.config||{};
+  const pct=parseFloat(cfg.com_tl)||8;
+  const mes=thisMonth();
+  const totalMes=(SC.ingresos||[]).filter(i=>i.fecha?.startsWith(mes)).reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
+  return {pct, totalMes, comision:totalMes*(pct/100)};
+}
+function getTLEstado(){
+  if(!SC.pagos_tl)SC.pagos_tl={};
+  const mes=thisMonth();
+  return SC.pagos_tl[mes]||'pendiente';
+}
+async function pagarTL(){
+  if(!SC.pagos_tl)SC.pagos_tl={};
+  const mes=thisMonth();
+  SC.pagos_tl[mes]='pagado';
+  await save();renderDashTL();renderPagosTL();toast('Pago al TL registrado ✓');
+}
+async function revertirTL(){
+  if(!SC.pagos_tl)SC.pagos_tl={};
+  const mes=thisMonth();
+  SC.pagos_tl[mes]='pendiente';
+  await save();renderDashTL();renderPagosTL();toast('Revertido a pendiente');
+}
+
+function renderDashTL(){
+  const tl=getTLUser();
+  const {pct,totalMes,comision}=getTLComision();
+  const estado=getTLEstado();
+  const mes=new Date();
+  const proximoPago=new Date(mes.getFullYear(),mes.getMonth()+1,1).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const enm=document.getElementById('tl-nombre-dash');if(enm)enm.textContent=tl?.nombre||'Team Leader';
+  const eim=document.getElementById('tl-ingresos-mes');if(eim)eim.textContent=fMon(totalMes);
+  const ecom=document.getElementById('tl-comision');if(ecom)ecom.textContent=fMon(comision);
+  const epp=document.getElementById('tl-proximo-pago');if(epp)epp.textContent='1/'+String(mes.getMonth()+2).padStart(2,'0')+'/'+mes.getFullYear();
+  const est=document.getElementById('tl-estado-dash');
+  if(est){
+    if(estado==='pagado'){est.textContent='✓ Pagado';est.style.background='rgba(29,185,84,.15)';est.style.color='var(--green)';}
+    else{est.textContent='Pendiente';est.style.background='rgba(245,158,11,.15)';est.style.color='var(--amber)';}
+  }
+  const btn=document.getElementById('tl-btn-pagar');
+  const inf=document.getElementById('tl-pagado-info');
+  if(btn&&inf){
+    if(estado==='pagado'){btn.style.display='none';inf.style.display='';inf.textContent='✓ Pagado el mes anterior';}
+    else{btn.style.display='';btn.textContent=`✓ Marcar pagado ${fMon(comision)} al TL`;inf.style.display='none';}
+  }
+}
+
+function renderPagosTL(){
+  const body=document.getElementById('pagos-tl-body');if(!body)return;
+  const tl=getTLUser();
+  const cfg=SC.config||{};
+  const pct=parseFloat(cfg.com_tl)||8;
+  const wallet=cfg.tl_wallet||'—';
+  // Calcular por mes
+  const meses=[...new Set((SC.ingresos||[]).map(i=>i.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();
+  if(!meses.length){body.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px">Sin ingresos registrados aún.</div>';return;}
+  if(!SC.pagos_tl)SC.pagos_tl={};
+  body.innerHTML=meses.map(mes=>{
+    const total=(SC.ingresos||[]).filter(i=>i.fecha?.startsWith(mes)).reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
+    const com=total*(pct/100);
+    const estado=SC.pagos_tl[mes]||'pendiente';
+    const isPaid=estado==='pagado';
+    const [y,m]=mes.split('-');
+    const label=new Date(parseInt(y),parseInt(m)-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+    return`<div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:130px">
+        <div style="font-size:13px;font-weight:600;text-transform:capitalize">${label}</div>
+        <div style="font-size:11px;color:var(--text3)">Pago: 01/${m}/${parseInt(y)+(parseInt(m)===12?1:0)}</div>
+      </div>
+      <div style="min-width:100px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Ingresos</div>
+        <div style="font-size:14px;font-weight:600">${fMon(total)}</div>
+      </div>
+      <div style="min-width:120px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Comisión ${pct}%</div>
+        <div style="font-size:16px;font-weight:700;color:var(--accent)">${fMon(com)}</div>
+      </div>
+      <div style="min-width:160px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Wallet</div>
+        <div style="font-size:12px;color:var(--text2)">${wallet}</div>
+      </div>
+      <div style="min-width:100px">${isPaid?'<span class="badge bg-green">✓ Pagado</span>':'<span class="badge bg-amber">Pendiente</span>'}</div>
+      <div style="margin-left:auto">
+        ${!isPaid
+          ?`<button class="btn btn-sm" style="background:rgba(29,185,84,.15);color:var(--green);border:1px solid rgba(29,185,84,.3);cursor:pointer;padding:5px 12px;border-radius:6px;font-size:12px;font-family:var(--font)" onclick="marcarPagadoTL('${mes}')">✓ Marcar pagado</button>`
+          :`<button class="btn btn-sm" style="background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.25);cursor:pointer;padding:5px 12px;border-radius:6px;font-size:12px;font-family:var(--font)" onclick="revertirTLMes('${mes}')">↩ Pendiente</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+async function marcarPagadoTL(mes){
+  if(!SC.pagos_tl)SC.pagos_tl={};
+  SC.pagos_tl[mes]='pagado';
+  await save();renderPagosTL();renderDashTL();toast('Pago TL de '+mes+' registrado ✓');
+}
+async function revertirTLMes(mes){
+  if(!SC.pagos_tl)SC.pagos_tl={};
+  SC.pagos_tl[mes]='pendiente';
+  await save();renderPagosTL();renderDashTL();toast('Revertido a pendiente');
+}
 function getCfg(){
   const cfg=SC.config||{};
   return {
@@ -876,7 +1034,7 @@ function getCfg(){
     comLunes: parseFloat(cfg.com_lunes)||8
   };
 }
-function renderAll(){loadConfig();renderDash();renderIngresos();renderPagos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
+function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
 function renderDash(){
@@ -900,6 +1058,7 @@ function renderDash(){
   buildChart(team);
   renderHoy();
   renderDashLunes();
+  renderDashTL();
 }
 function renderHoy(){
   const hoy=today();
@@ -1094,7 +1253,7 @@ async function saveIngreso(){
   const obj={id:id||uid(),fecha,quincena:gv('m-ing-q'),chatter_id:cid,chatter_nombre:cht?.nombre||'',equipo:cht?.equipo||'',horas:hrs,facturacion:fac,total_facturado:total,lunes:nLunes2>0,lunes_cantidad:nLunes2,lunes_detalle:lunesDetalle,lunes_monto:lunesMonto2,lunes_comision:lunesCom2,comision:totalCom2,comision_normal:normalCom2,costo_horas:hrs*sPPH,tpm:tpmCalc};
   ensureArr('ingresos');
   SC.ingresos=id?SC.ingresos.map(x=>x.id===id?obj:x):[...SC.ingresos,obj];
-  await save();renderIngresos();renderPagos();renderDash();closeModal('m-ing');toast('Ingreso guardado');
+  await save();renderIngresos();renderPagos();renderDash();renderDashTL();renderPagosTL();closeModal('m-ing');toast('Ingreso guardado');
 }
 function fillIngFilters(){
   const teams=(SC.teams||[]);
@@ -1596,18 +1755,24 @@ function loadConfig(){
   const el_pph=document.getElementById('cfg-pph');
   const el_n=document.getElementById('cfg-com-normal');
   const el_l=document.getElementById('cfg-com-lunes');
+  const el_tl=document.getElementById('cfg-com-tl');
+  const el_tw=document.getElementById('cfg-tl-wallet');
   if(el_pph)el_pph.value=cfg.pph||2;
   if(el_n)el_n.value=cfg.com_normal||5;
   if(el_l)el_l.value=cfg.com_lunes||8;
+  if(el_tl)el_tl.value=cfg.com_tl||8;
+  if(el_tw)el_tw.value=cfg.tl_wallet||'';
   const disp=document.getElementById('cfg-display');
-  if(disp)disp.textContent=`PPH $${cfg.pph||2}/h · Normal ${cfg.com_normal||5}% · Lunes ${cfg.com_lunes||8}%`;
+  if(disp)disp.textContent=`PPH $${cfg.pph||2}/h · Normal ${cfg.com_normal||5}% · Lunes ${cfg.com_lunes||8}% · TL ${cfg.com_tl||8}%`;
 }
 async function saveConfig(){
   if(!SC.config)SC.config={};
   SC.config.pph=parseFloat(document.getElementById('cfg-pph')?.value)||2;
   SC.config.com_normal=parseFloat(document.getElementById('cfg-com-normal')?.value)||5;
   SC.config.com_lunes=parseFloat(document.getElementById('cfg-com-lunes')?.value)||8;
-  await save();loadConfig();toast('Configuración guardada ✓');
+  SC.config.com_tl=parseFloat(document.getElementById('cfg-com-tl')?.value)||8;
+  SC.config.tl_wallet=document.getElementById('cfg-tl-wallet')?.value||'';
+  await save();loadConfig();renderDashTL();renderPagosTL();toast('Configuración guardada ✓');
 }
 function renderNichos(){
   const nichos=SC.nichos?.length?SC.nichos:NICHOS_DEF;
