@@ -943,7 +943,7 @@ function renderTeams(){
   if(!SC.teams.length){tb.innerHTML=emptyRow(6,'🏷️','Sin teams creados. Creá uno para poder agregar chatters.');return;}
   tb.innerHTML=SC.teams.map(t=>{
     const chts=(SC.chatters||[]).filter(c=>c.equipo===t.id);
-    const mdls=(SC.modelos||[]).filter(m=>chts.some(c=>c.id===m.chatter));
+    const mdls=(SC.modelos||[]).filter(m=>m.team===t.id);
     return`<tr>
       <td><strong>${t.nombre}</strong></td>
       <td>${chts.length} chatter${chts.length!==1?'s':''}</td>
@@ -977,12 +977,12 @@ function renderChatters(){
   const tb=document.getElementById('tbody-cht');
   if(!all.length){tb.innerHTML=emptyRow(8,'💬','Sin chatters registrados');return;}
   tb.innerHTML=all.map(c=>{
-    const mods=(SC.modelos||[]).filter(m=>m.chatter===c.id).map(m=>m.nombre).join(', ')||'—';
+    const mods=(SC.modelos||[]).filter(m=>m.team===c.equipo);
     return`<tr>
       <td><strong>${c.nombre}</strong></td>
       <td><span class="badge bg-purple">${(SC.teams||[]).find(t=>t.id===c.equipo)?.nombre||c.equipo||'—'}</span></td>
       <td><span class="badge bg-blue">${c.turno||'—'}</span></td>
-      <td style="font-size:12px;color:var(--text2);max-width:160px">${mods}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:200px">${mods.length?mods.map(m=>`<span class="badge bg-cyan" style="margin:1px">${m.nombre}</span>`).join(' '):'—'}</td>
       <td>5%</td><td>$${PPH}/h</td>
       <td>${c.estado==='activo'?'<span class="badge bg-green">Activo</span>':'<span class="badge bg-red">Inactivo</span>'}</td>
       <td><button class="bti" onclick="editChatter('${c.id}')">✏️</button><button class="bti" onclick="delChatter('${c.id}')">🗑️</button></td>
@@ -999,22 +999,22 @@ async function saveModelo(){
   const obj={id:id||uid(),nombre:gv('m-mdl-nombre'),team:gv('m-mdl-team'),estado:gv('m-mdl-est'),notas:gv('m-mdl-notas')};
   if(!obj.nombre){toast('Ingresá el nombre','err');return;}
   ensureArr('modelos');SC.modelos=id?SC.modelos.map(x=>x.id===id?obj:x):[...SC.modelos,obj];
-  await save();renderModelos();renderDash();closeModal('m-mdl');toast('Modelo guardada');
+  await save();renderModelos();renderTeams();renderChatters();renderDash();closeModal('m-mdl');toast('Modelo guardada');
 }
 function renderModelos(){
   const q=(document.getElementById('q-mdl')?.value||'').toLowerCase();
   const all=(SC.modelos||[]).filter(m=>!q||m.nombre.toLowerCase().includes(q));
   const tb=document.getElementById('tbody-mdl');
   if(!all.length){tb.innerHTML=emptyRow(6,'⭐','Sin modelos registradas');return;}
-  tb.innerHTML=all.map(m=>{const tm=(SC.teams||[]).find(t=>t.id===m.team);const teamChts=(SC.chatters||[]).filter(c=>c.equipo===m.team);return`<tr>
+  tb.innerHTML=all.map(m=>{const tm=(SC.teams||[]).find(t=>t.id===m.team);const teamChts=(SC.chatters||[]).filter(c=>c.equipo===m.team);const teamChtsStr=teamChts.length?teamChts.map(c=>c.nombre).join(', '):'—';return`<tr>
     <td><strong>${m.nombre}</strong></td><td>${tm?`<span class="badge bg-purple">${tm.nombre}</span>`:'—'}</td>
-    <td style="font-size:12px;color:var(--text2)">${teamChts.length?teamChts.map(c=>c.nombre).join(', '):'—'}</td>
+    <td style="font-size:12px;color:var(--text2)">${teamChtsStr}</td>
     <td>${m.estado==='activa'?'<span class="badge bg-green">Activa</span>':'<span class="badge bg-red">Inactiva</span>'}</td>
     <td style="font-size:12px;color:var(--text2);max-width:180px">${m.notas||'—'}</td>
     <td><button class="bti" onclick="editModelo('${m.id}')">✏️</button><button class="bti" onclick="delModelo('${m.id}')">🗑️</button></td>
   </tr>`;}).join('');
 }
-async function delModelo(id){if(!confirm('¿Eliminar?'))return;SC.modelos=(SC.modelos||[]).filter(x=>x.id!==id);await save();renderModelos();renderDash();toast('Eliminada');}
+async function delModelo(id){if(!confirm('¿Eliminar?'))return;SC.modelos=(SC.modelos||[]).filter(x=>x.id!==id);await save();renderModelos();renderTeams();renderChatters();renderDash();toast('Eliminada');}
 
 // SOLICITUDES
 function bSol(s){const m={pendiente:['bg-amber','Pendiente'],en_proceso:['bg-blue','En proceso'],completada:['bg-green','Completada'],cancelada:['bg-red','Cancelada']};const[c,l]=m[s]||['bg-amber','Pendiente'];return`<span class="badge ${c}">${l}</span>`;}
