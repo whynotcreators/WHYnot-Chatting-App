@@ -421,7 +421,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="ptab active" onclick="fSol('todas',this)">Todas</div>
       <div class="ptab" onclick="fSol('pendiente',this)">🟡 Pendientes</div>
       <div class="ptab" onclick="fSol('solicitada',this)">🔵 Solicitadas</div>
-      <div class="ptab" onclick="fSol('produccion',this)">🟠 En producción</div>
+
       <div class="ptab" onclick="fSol('inflow',this)">🟢 En Infloww</div>
       <div class="ptab" onclick="fSol('cancelada',this)">Canceladas</div>
     </div>
@@ -871,6 +871,10 @@ async function sbSave(){await fetch(`${SB_URL}/rest/v1/chatting_state?id=eq.main
 async function init(){
   try{
     SC=await sbGet();
+    // Migrar estado 'produccion' → 'solicitada'
+    if(SC.solicitudes){
+      SC.solicitudes=SC.solicitudes.map(s=>s.estado==='produccion'?{...s,estado:'solicitada'}:s);
+    }
     if(!SC.usuarios)SC.usuarios=[{id:'usr_admin',usuario:'admin',pass:'whynot2025',nombre:'Admin',rol:'admin',creado:'2026-01-01'}];
     CU=SC.usuarios.find(u=>u.rol==='admin')||SC.usuarios[0];
     document.getElementById('sb-nm').textContent=CU.nombre||CU.usuario;
@@ -1675,11 +1679,10 @@ async function delModelo(id){if(!confirm('¿Eliminar?'))return;SC.modelos=(SC.mo
 
 // SOLICITUDES
 const SOL_ESTADOS = {
-  pendiente:  {label:'Pendiente',        cls:'bg-amber',  icon:'🟡'},
-  solicitada: {label:'Solicitada a modelo', cls:'bg-blue', icon:'🔵'},
-  produccion: {label:'En producción',    cls:'bg-pink',   icon:'🟠'},
-  inflow:     {label:'Cargado en Infloww',cls:'bg-green',  icon:'🟢'},
-  cancelada:  {label:'Cancelada',        cls:'bg-red',    icon:'❌'},
+  pendiente:  {label:'Pendiente',          cls:'bg-amber', icon:'🟡'},
+  solicitada: {label:'Solicitada a modelo',cls:'bg-blue',  icon:'🔵'},
+  inflow:     {label:'Cargado en Infloww', cls:'bg-green', icon:'🟢'},
+  cancelada:  {label:'Cancelada',          cls:'bg-red',   icon:'❌'},
 };
 
 function bSol(s){
@@ -1777,7 +1780,7 @@ function renderSolicitudes(){
 
   // KPIs
   const todos=SC.solicitudes||[];
-  const kMap={pendiente:'sol-k-pend',solicitada:'sol-k-sol',produccion:'sol-k-prod',inflow:'sol-k-inflow'};
+  const kMap={pendiente:'sol-k-pend',solicitada:'sol-k-sol',inflow:'sol-k-inflow'};
   Object.entries(kMap).forEach(([est,elId])=>{
     const el=document.getElementById(elId);
     if(el)el.textContent=todos.filter(s=>s.estado===est).length;
@@ -1795,9 +1798,6 @@ function renderSolicitudes(){
       btns.push(`<button class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','solicitada')">🔵 Solicitar a modelo</button>`);
     }
     if(s.estado==='solicitada'){
-      btns.push(`<button class="btn btn-sm" style="background:rgba(236,72,153,.15);color:var(--pink);border:1px solid rgba(236,72,153,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','produccion')">🟠 En producción</button>`);
-    }
-    if(s.estado==='produccion'){
       btns.push(`<button class="btn btn-sm" style="background:rgba(29,185,84,.15);color:var(--green);border:1px solid rgba(29,185,84,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','inflow')">🟢 Cargado en Infloww</button>`);
     }
     if(s.estado!=='cancelada'&&s.estado!=='inflow'){
