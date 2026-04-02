@@ -387,13 +387,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr">
       <div class="card-ttl">Horas trabajadas en la quincena</div>
-      <button class="btn btn-ghost btn-sm" onclick="saveHoras()">💾 Guardar horas</button>
+      <span style="font-size:12px;color:var(--text3)">Calculado desde los ingresos registrados</span>
     </div>
     <div class="card-body" id="perf-horas-body"><div style="color:var(--text3);font-size:13px">Seleccioná un equipo y periodo para cargar horas.</div></div>
   </div>
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr"><div class="card-ttl">Comparativa por chatter</div></div>
-    <table class="tbl"><thead><tr><th>Chatter</th><th>Equipo</th><th>Turno</th><th>Modelos</th><th>Hrs</th><th>Tiempo/modelo</th><th>Facturado</th><th>Comisión 5%</th><th>Costo hrs</th><th>Costo total</th><th>Profit</th><th>Margen</th></tr></thead>
+    <table class="tbl"><thead><tr><th>Chatter</th><th>Equipo</th><th>Turno</th><th>Modelos</th><th>Hrs</th><th>Tiempo/modelo</th><th>Facturado</th><th>Comisión 5%</th><th>Comisión lunes 8%</th><th>Costo hrs</th><th>Costo total</th><th>Profit</th><th>Margen</th></tr></thead>
     <tbody id="tbody-perf"></tbody></table>
   </div>
   <div class="card">
@@ -942,7 +942,7 @@ function updIngCalc(){
   const total=totalMdls;
   const costoH=hrs*PPH;
   // TPM automático: horas / cantidad de modelos del team
-  const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':mods.length>0?'Cargá las horas':'—';
+  const tpm=allMods.length>0&&hrs>0?(hrs/allMods.length).toFixed(1)+'h':allMods.length>0?'— (cargá hrs)':'—';
   if(document.getElementById('ing-lunes-com'))document.getElementById('ing-lunes-com').textContent=fMon(lunesCom);
   document.getElementById('ing-calc-total').textContent=fMon(total);
   document.getElementById('ing-calc-com').textContent=fMon(normalCom);
@@ -1216,11 +1216,17 @@ function renderPerf(){
   const hb=document.getElementById('perf-horas-body');
   hb.innerHTML=chts.length===0
     ?'<div style="color:var(--text3);font-size:13px;padding:4px">No hay chatters.</div>'
-    :chts.map(c=>`<div class="q-row">
+    :chts.map(c=>{
+      const cIngs=(SC.ingresos||[]).filter(i=>i.chatter_id===c.id&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
+      const hrsIng=cIngs.reduce((a,i)=>a+(parseFloat(i.horas)||0),0);
+      const tuvoLunesC=cIngs.some(i=>i.lunes);
+      return`<div class="q-row">
         <label>${c.nombre} <span style="color:var(--text3);font-size:11px">(${getTeamNm(c.equipo)})</span></label>
-        <input class="fi" type="number" id="hrs-${c.id}" value="${(SC.horas_quincena[hkey]||{})[c.id]||''}" placeholder="0" min="0" style="max-width:100px"/>
-        <span style="font-size:11px;color:var(--text3)">hrs trabajadas</span>
-      </div>`).join('');
+        <span style="font-size:18px;font-weight:700;color:var(--text);min-width:60px">${hrsIng}h</span>
+        <span style="font-size:11px;color:var(--text3)">hrs registradas en ingresos</span>
+        ${tuvoLunesC?'<span class="badge bg-amber" style="font-size:10px">Trabajó lunes</span>':''}
+      </div>`;
+    }).join('');
 
   // Calcular métricas
   const rows=chts.map(c=>{
@@ -1236,6 +1242,7 @@ function renderPerf(){
   });
 
   // KPIs globales
+  // KPIs
   const tf=rows.reduce((a,r)=>a+r.fac,0);
   const tc=rows.reduce((a,r)=>a+r.costo,0);
   const tp=tf-tc;
@@ -1253,8 +1260,11 @@ function renderPerf(){
     <td><strong>${r.c.nombre}</strong></td>
     <td><span class="badge bg-purple">${tNm}</span></td>
     <td><span class="badge bg-blue">${r.c.turno||'—'}</span></td>
-    <td>${r.mods.length}</td><td>${r.hrs}h</td><td>${r.tpm}</td>
-    <td>${fMon(r.fac)}</td><td>${fMon(r.com)}</td><td>${fMon(r.costoH)}</td><td>${fMon(r.costo)}</td>
+    <td>${r.allMods.length}</td><td>${r.hrs}h</td><td>${r.tpm}</td>
+    <td>${fMon(r.fac)}</td>
+    <td>${fMon(r.comNormal)}</td>
+    <td>${r.tuvoLunes?`<span style="color:var(--amber)">${fMon(r.comLunes)}</span>`:'—'}</td>
+    <td>${fMon(r.costoH)}</td><td>${fMon(r.costo)}</td>
     <td style="color:${r.profit>=0?'var(--green)':'var(--red)'}">${fMon(r.profit)}</td>
     <td style="color:${parseFloat(r.margen)>=50?'var(--green)':parseFloat(r.margen)>=30?'var(--amber)':'var(--red)'}">${r.margen}${r.margen!=='—'?'%':''}</td>
   </tr>`;}).join('');
@@ -1269,10 +1279,11 @@ function renderPerf(){
   te.innerHTML=teamsToShow.map(tObj=>{
     const eq=tObj.id;
     const ec=(SC.chatters||[]).filter(c=>c.equipo===eq);
-    const em=(SC.modelos||[]).filter(m=>ec.some(c=>c.id===m.chatter)&&m.estado==='activa');
+    const em=(SC.modelos||[]).filter(m=>m.team===eq&&m.estado==='activa');
     const ei=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
     const ef=ei.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
-    const eh=ec.reduce((a,c)=>a+((SC.horas_quincena[hkey]||{})[c.id]||0),0);
+    const eqIngsAll=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
+    const eh=eqIngsAll.reduce((a,i)=>a+(parseFloat(i.horas)||0),0);
     const ec2=ef*0.05+eh*PPH;const ep=ef-ec2;
     const em2=ef>0?((ep/ef)*100).toFixed(1):'—';
     return`<tr>
