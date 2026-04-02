@@ -651,7 +651,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
             <div class="pw"><input class="fi" type="password" id="nu-pass" placeholder="••••••••"/>
             <span class="pwe" onclick="tPass('nu-pass')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
           </div>
-          <div class="fg"><label>Rol</label><select class="fs" id="nu-rol"><option value="admin">Admin</option><option value="tl">Team Leader</option><option value="cm" selected>Community Manager</option></select></div>
+          <div class="fg"><label>Rol</label><select class="fs" id="nu-rol"><option value="admin">Admin</option><option value="tl">Team Leader</option><option value="cm" selected>Content Manager</option></select></div>
         </div>
         <button class="btn btn-primary" onclick="crearUsr()">Crear usuario</button>
       </div>
@@ -978,7 +978,7 @@ function fMon(n){return'$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFra
 function thisMonth(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
 function isThisMon(d){return d&&d.startsWith(thisMonth());}
 function isQ(d,q){if(!d||q==='all')return true;const day=parseInt(d.split('-')[2]);return q==='q1'?day<=15:day>=16;}
-function rolNm(r){return r==='admin'?'Administrador':r==='tl'?'Team Leader':'Community Manager';}
+function rolNm(r){return r==='admin'?'Administrador':r==='tl'?'Team Leader':'Content Manager';}
 function tPass(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);}
 function emptyRow(cols,ico,txt){return`<tr><td colspan="${cols}"><div class="empty"><div class="empty-i">${ico}</div><div class="empty-t">${txt}</div></div></td></tr>`;}
