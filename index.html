@@ -387,7 +387,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- SOLICITUDES -->
 <div class="page" id="page-solicitudes">
   <div class="ph">
-    <div class="ph-l"><div class="pt">Solicitudes</div><div class="ps">Flujo de contenido: TL → Content Manager → Modelo → Inflow</div></div>
+    <div class="ph-l"><div class="pt">Solicitudes</div><div class="ps">Flujo de contenido: TL → Content Manager → Modelo → Infloww</div></div>
     <button class="btn btn-primary" onclick="openModal('m-sol')">+ Nueva solicitud</button>
   </div>
 
@@ -396,7 +396,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="kcard"><div class="lbl">Pendientes</div><div class="val" id="sol-k-pend" style="color:var(--amber)">0</div></div>
     <div class="kcard"><div class="lbl">Solicitadas a modelo</div><div class="val" id="sol-k-sol" style="color:var(--blue)">0</div></div>
     <div class="kcard"><div class="lbl">En producción</div><div class="val" id="sol-k-prod" style="color:var(--pink)">0</div></div>
-    <div class="kcard"><div class="lbl">Cargadas en Inflow</div><div class="val" id="sol-k-inflow" style="color:var(--green)">0</div></div>
+    <div class="kcard"><div class="lbl">Cargadas en Infloww</div><div class="val" id="sol-k-inflow" style="color:var(--green)">0</div></div>
   </div>
 
   <!-- Filtros -->
@@ -406,7 +406,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="ptab" onclick="fSol('pendiente',this)">🟡 Pendientes</div>
       <div class="ptab" onclick="fSol('solicitada',this)">🔵 Solicitadas</div>
       <div class="ptab" onclick="fSol('produccion',this)">🟠 En producción</div>
-      <div class="ptab" onclick="fSol('inflow',this)">🟢 En Inflow</div>
+      <div class="ptab" onclick="fSol('inflow',this)">🟢 En Infloww</div>
       <div class="ptab" onclick="fSol('cancelada',this)">Canceladas</div>
     </div>
     <select class="fs" id="sol-filter-modelo" onchange="renderSolicitudes()" style="width:auto;padding:7px 12px;font-size:13px;margin-left:auto"><option value="">Todas las modelos</option></select>
@@ -1523,7 +1523,7 @@ const SOL_ESTADOS = {
   pendiente:  {label:'Pendiente',        cls:'bg-amber',  icon:'🟡'},
   solicitada: {label:'Solicitada a modelo', cls:'bg-blue', icon:'🔵'},
   produccion: {label:'En producción',    cls:'bg-pink',   icon:'🟠'},
-  inflow:     {label:'Cargado en Inflow',cls:'bg-green',  icon:'🟢'},
+  inflow:     {label:'Cargado en Infloww',cls:'bg-green',  icon:'🟢'},
   cancelada:  {label:'Cancelada',        cls:'bg-red',    icon:'❌'},
 };
 
@@ -1643,7 +1643,7 @@ function renderSolicitudes(){
       btns.push(`<button class="btn btn-sm" style="background:rgba(236,72,153,.15);color:var(--pink);border:1px solid rgba(236,72,153,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','produccion')">🟠 En producción</button>`);
     }
     if(s.estado==='produccion'){
-      btns.push(`<button class="btn btn-sm" style="background:rgba(29,185,84,.15);color:var(--green);border:1px solid rgba(29,185,84,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','inflow')">🟢 Cargado en Inflow</button>`);
+      btns.push(`<button class="btn btn-sm" style="background:rgba(29,185,84,.15);color:var(--green);border:1px solid rgba(29,185,84,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','inflow')">🟢 Cargado en Infloww</button>`);
     }
     if(s.estado!=='cancelada'&&s.estado!=='inflow'){
       btns.push(`<button class="bti" style="color:var(--red);font-size:11px" onclick="cambiarEstadoSol('${s.id}','cancelada')" title="Cancelar">✕</button>`);
