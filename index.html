@@ -246,7 +246,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div class="page" id="page-ingresos">
   <div class="ph">
     <div class="ph-l"><div class="pt">Ingresos</div><div class="ps">Facturación por chatter</div></div>
-    <button class="btn btn-primary" onclick="openModal('m-ing')">+ Nuevo ingreso</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select class="fs" id="ing-filter-team" onchange="renderIngresos()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los equipos</option></select>
+      <select class="fs" id="ing-filter-mes" onchange="renderIngresos()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los meses</option></select>
+      <select class="fs" id="ing-filter-q" onchange="renderIngresos()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todas las quincenas</option><option value="q1">Q1 (1-15)</option><option value="q2">Q2 (16-fin)</option></select>
+      <button class="btn btn-primary" onclick="openModal('m-ing')">+ Nuevo ingreso</button>
+    </div>
   </div>
   <div class="krow k3">
     <div class="kcard"><div class="lbl">Total este mes</div><div class="val" id="ing-total">$0</div></div>
@@ -375,6 +380,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <select class="fs" id="perf-team" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="all">Todos los equipos</option></select>
     <select class="fs" id="perf-mes" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"></select>
     <select class="fs" id="perf-q" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="all">Mes completo</option><option value="q1">1ra quincena (1-15)</option><option value="q2">2da quincena (16-fin)</option></select>
+    <select class="fs" id="perf-nicho" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los nichos</option></select>
+    <select class="fs" id="perf-modelo" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todas las modelos</option></select>
   </div>
   <div class="krow k4" id="perf-kpis"></div>
   <div class="card" style="margin-bottom:20px">
@@ -793,7 +800,7 @@ function fillPerfMes(){
   const cur=new Date();
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
-function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();}
+function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
 function renderDash(){
@@ -943,9 +950,21 @@ async function saveIngreso(){
   SC.ingresos=id?SC.ingresos.map(x=>x.id===id?obj:x):[...SC.ingresos,obj];
   await save();renderIngresos();renderDash();closeModal('m-ing');toast('Ingreso guardado');
 }
+function fillIngFilters(){
+  const teams=(SC.teams||[]);
+  const sel=document.getElementById('ing-filter-team');
+  if(sel){const cur=sel.value;sel.innerHTML='<option value="">Todos los equipos</option>'+teams.map(t=>`<option value="${t.id}" ${t.id===cur?'selected':''}>${t.nombre}</option>`).join('');}
+  const msel=document.getElementById('ing-filter-mes');
+  if(msel){const cur=msel.value;const meses=[...new Set((SC.ingresos||[]).map(i=>i.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();msel.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>`<option value="${m}" ${m===cur?'selected':''}>${m}</option>`).join('');}
+}
 function renderIngresos(){
-  const all=SC.ingresos||[];
-  const mes=all.filter(i=>isThisMon(i.fecha));
+  fillIngFilters();
+  const fTeam=document.getElementById('ing-filter-team')?.value||'';
+  const fMes=document.getElementById('ing-filter-mes')?.value||'';
+  const fQ=document.getElementById('ing-filter-q')?.value||'';
+  const allRaw=SC.ingresos||[];
+  const all=allRaw.filter(i=>(!fTeam||i.equipo===fTeam)&&(!fMes||i.fecha?.startsWith(fMes))&&(!fQ||i.quincena===fQ));
+  const mes=allRaw.filter(i=>isThisMon(i.fecha));
   const tot=mes.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
   const com=mes.reduce((a,i)=>a+(parseFloat(i.comision)||0),0);
   document.getElementById('ing-total').textContent=fMon(tot);
@@ -955,10 +974,11 @@ function renderIngresos(){
   const tb=document.getElementById('tbody-ing');
   if(!all.length){tb.innerHTML=emptyRow(9,'💰','Sin ingresos registrados');return;}
   tb.innerHTML=[...all].reverse().map(i=>{
+    const teamNm=(SC.teams||[]).find(t=>t.id===i.equipo)?.nombre||i.equipo||'—';
     const mdlStr=Object.keys(i.facturacion||{}).map(mid=>{const m=(SC.modelos||[]).find(x=>x.id===mid);return m?m.nombre+' '+fMon(i.facturacion[mid]):''}).filter(Boolean).join(', ')||'—';
     return`<tr>
       <td>${fDate(i.fecha)}</td><td><strong>${i.chatter_nombre||'—'}</strong></td>
-      <td><span class="badge bg-purple">${i.equipo||'—'}</span></td>
+      <td><span class="badge bg-purple">${teamNm}</span></td>
       <td title="${mdlStr}">${fMon(i.total_facturado)}</td>
       <td>${fMon(i.comision)}</td><td>${i.horas||0}h</td><td>${fMon(i.costo_horas)}</td>
       <td><span class="badge bg-blue">${i.quincena==='q1'?'Q1':'Q2'}</span></td>
@@ -1148,11 +1168,28 @@ function renderCandidatos(){
 async function delCandidato(id){if(!confirm('¿Eliminar?'))return;SC.candidatos=(SC.candidatos||[]).filter(x=>x.id!==id);await save();renderCandidatos();toast('Eliminado');}
 
 // RENDIMIENTO
+function fillPerfFilters(){
+  const nichos=SC.nichos?.length?SC.nichos:NICHOS_DEF;
+  const ns=document.getElementById('perf-nicho');
+  if(ns){const cur=ns.value;ns.innerHTML='<option value="">Todos los nichos</option>'+nichos.map(n=>`<option value="${n}" ${n===cur?'selected':''}>${n}</option>`).join('');}
+  const ms=document.getElementById('perf-modelo');
+  if(ms){const cur=ms.value;ms.innerHTML='<option value="">Todas las modelos</option>'+(SC.modelos||[]).map(m=>`<option value="${m.id}" ${m.id===cur?'selected':''}>${m.nombre}</option>`).join('');}
+}
 function renderPerf(){
+  fillPerfFilters();
   const team=gv('perf-team')||'all';
   const mes=gv('perf-mes')||thisMonth();
   const q=gv('perf-q')||'all';
-  const chts=team==='all'?(SC.chatters||[]):(SC.chatters||[]).filter(c=>c.equipo===team);
+  const fNicho=document.getElementById('perf-nicho')?.value||'';
+  const fModelo=document.getElementById('perf-modelo')?.value||'';
+  // Chatters del team seleccionado
+  let chts=team==='all'?(SC.chatters||[]):(SC.chatters||[]).filter(c=>c.equipo===team);
+  // Si hay filtro de nicho o modelo, filtrar por los teams que tengan esas modelos
+  if(fNicho||fModelo){
+    const mdlsFiltradas=(SC.modelos||[]).filter(m=>(!fNicho||m.nicho===fNicho)&&(!fModelo||m.id===fModelo));
+    const teamIds=[...new Set(mdlsFiltradas.map(m=>m.team))];
+    chts=chts.filter(c=>teamIds.includes(c.equipo));
+  }
   const hkey=mes+'_'+q;
   if(!SC.horas_quincena)SC.horas_quincena={};
 
@@ -1193,21 +1230,25 @@ function renderPerf(){
   // Tabla chatters
   const tb=document.getElementById('tbody-perf');
   if(!rows.length){tb.innerHTML=emptyRow(12,'📊','Sin datos');return;}
-  tb.innerHTML=rows.map(r=>`<tr>
+  tb.innerHTML=rows.map(r=>{const tNm=(SC.teams||[]).find(t=>t.id===r.c.equipo)?.nombre||r.c.equipo||'—';return`<tr>
     <td><strong>${r.c.nombre}</strong></td>
-    <td><span class="badge bg-purple">${r.c.equipo||'—'}</span></td>
+    <td><span class="badge bg-purple">${tNm}</span></td>
     <td><span class="badge bg-blue">${r.c.turno||'—'}</span></td>
     <td>${r.mods.length}</td><td>${r.hrs}h</td><td>${r.tpm}</td>
     <td>${fMon(r.fac)}</td><td>${fMon(r.com)}</td><td>${fMon(r.costoH)}</td><td>${fMon(r.costo)}</td>
     <td style="color:${r.profit>=0?'var(--green)':'var(--red)'}">${fMon(r.profit)}</td>
     <td style="color:${parseFloat(r.margen)>=50?'var(--green)':parseFloat(r.margen)>=30?'var(--amber)':'var(--red)'}">${r.margen}${r.margen!=='—'?'%':''}</td>
-  </tr>`).join('');
+  </tr>`;}).join('');
 
   // Tabla equipos
   const eqs=[...new Set((SC.chatters||[]).map(c=>c.equipo).filter(Boolean))];
   const te=document.getElementById('tbody-perf-eq');
-  if(!eqs.length){te.innerHTML=emptyRow(8,'🏷️','Sin equipos');return;}
-  te.innerHTML=eqs.map(eq=>{
+  if(!teamsToShow.length){te.innerHTML=emptyRow(8,'🏷️','Sin equipos');return;}
+  // Equipos: usar IDs de teams reales
+  const teamIds=[...new Set((SC.chatters||[]).map(c=>c.equipo).filter(Boolean))];
+  const teamsToShow=team==='all'?(SC.teams||[]).filter(t=>teamIds.includes(t.id)):[(SC.teams||[]).find(t=>t.id===team)].filter(Boolean);
+  te.innerHTML=teamsToShow.map(tObj=>{
+    const eq=tObj.id;
     const ec=(SC.chatters||[]).filter(c=>c.equipo===eq);
     const em=(SC.modelos||[]).filter(m=>ec.some(c=>c.id===m.chatter)&&m.estado==='activa');
     const ei=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
@@ -1216,7 +1257,7 @@ function renderPerf(){
     const ec2=ef*0.05+eh*PPH;const ep=ef-ec2;
     const em2=ef>0?((ep/ef)*100).toFixed(1):'—';
     return`<tr>
-      <td><span class="badge bg-purple">${eq}</span></td>
+      <td><span class="badge bg-purple">${tObj.nombre||eq}</span></td>
       <td>${ec.length}</td><td>${em.length}</td><td>${eh}h</td>
       <td>${fMon(ef)}</td><td>${fMon(ec2)}</td>
       <td style="color:${ep>=0?'var(--green)':'var(--red)'}">${fMon(ep)}</td>
