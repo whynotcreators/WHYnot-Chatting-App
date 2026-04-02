@@ -272,16 +272,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- PAGOS -->
 <div class="page" id="page-pagos">
   <div class="ph">
-    <div class="ph-l"><div class="pt">Pagos</div><div class="ps">Egresos y pagos</div></div>
-    <button class="btn btn-primary" onclick="openModal('m-egr')">+ Nuevo egreso</button>
+    <div class="ph-l"><div class="pt">Pagos</div><div class="ps">Egresos y pagos al equipo</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="fs" id="egr-filter-team" onchange="renderEgresos()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los equipos</option></select>
+      <select class="fs" id="egr-filter-mes" onchange="renderEgresos()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los meses</option></select>
+      <select class="fs" id="egr-filter-estado" onchange="renderEgresos()" style="width:auto;padding:7px 12px;font-size:13px">
+        <option value="">Todos</option>
+        <option value="pendiente">Pendientes</option>
+        <option value="pagado">Pagados</option>
+      </select>
+      <button class="btn btn-primary" onclick="openModal('m-egr')">+ Nuevo egreso</button>
+    </div>
   </div>
-  <div class="krow k2">
-    <div class="kcard"><div class="lbl">Total egresos este mes</div><div class="val" id="egr-total">$0</div></div>
-    <div class="kcard"><div class="lbl">Pagos a chatters</div><div class="val" id="egr-cht">$0</div></div>
+  <div class="krow k3">
+    <div class="kcard"><div class="lbl">Total este mes</div><div class="val" id="egr-total">$0</div></div>
+    <div class="kcard"><div class="lbl">Pendientes de pago</div><div class="val" id="egr-pendiente" style="color:var(--amber)">$0</div></div>
+    <div class="kcard"><div class="lbl">Pagados</div><div class="val" id="egr-pagado" style="color:var(--green)">$0</div></div>
   </div>
   <div class="card">
-    <div class="card-hdr"><div class="card-ttl">Historial</div></div>
-    <table class="tbl"><thead><tr><th>Fecha</th><th>Persona / Concepto</th><th>Monto</th><th>Descripción</th><th></th></tr></thead>
+    <div class="card-hdr"><div class="card-ttl">Historial de pagos</div></div>
+    <table class="tbl"><thead><tr><th>Fecha</th><th>Chatter</th><th>Equipo</th><th>Concepto</th><th>Wallet</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
     <tbody id="tbody-egr"></tbody></table>
   </div>
 </div>
@@ -568,8 +578,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-egr-fecha"/></div>
       <div class="fg"><label>Monto (USD)</label><input class="fi" type="number" id="m-egr-monto" placeholder="0"/></div>
     </div>
-    <div class="fg"><label>Persona / Concepto</label><input class="fi" id="m-egr-persona" placeholder="ej: Editor, Chatter..."/></div>
+    <div class="fr2">
+      <div class="fg"><label>Equipo (opcional)</label><select class="fs" id="m-egr-team" onchange="updEgrChts()"></select></div>
+      <div class="fg"><label>Chatter (opcional)</label><select class="fs" id="m-egr-cht" onchange="updEgrWallet()"></select></div>
+    </div>
+    <div class="fg"><label>Wallet / Dirección de pago</label>
+      <input class="fi" id="m-egr-wallet" placeholder="Se autocompleta con la wallet del chatter..."/>
+    </div>
+    <div class="fg"><label>Concepto</label><input class="fi" id="m-egr-persona" placeholder="ej: Sueldo, Comisión, Herramienta..."/></div>
     <div class="fg"><label>Descripción</label><input class="fi" id="m-egr-desc" placeholder="Descripción del gasto..."/></div>
+    <div class="fg"><label>Estado</label>
+      <select class="fs" id="m-egr-estado">
+        <option value="pendiente">Pendiente de pago</option>
+        <option value="pagado">Pagado</option>
+      </select>
+    </div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-egr')">Cancelar</button><button class="btn btn-primary" onclick="saveEgreso()">Guardar</button></div>
   </div>
 </div>
@@ -847,7 +870,7 @@ function getCfg(){
     comLunes: parseFloat(cfg.com_lunes)||8
   };
 }
-function renderAll(){loadConfig();renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
+function renderAll(){loadConfig();renderDash();renderIngresos();fillEgrFilters();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
 function renderDash(){
@@ -1106,29 +1129,101 @@ function renderIngresos(){
 async function delIngreso(id){if(!confirm('¿Eliminar?'))return;SC.ingresos=(SC.ingresos||[]).filter(x=>x.id!==id);await save();renderIngresos();renderDash();toast('Eliminado');}
 
 // EGRESOS
-function prepEgr(){sv('m-egr-ttl','Nuevo egreso');sv('m-egr-id','');sv('m-egr-fecha',today());sv('m-egr-monto','');sv('m-egr-persona','');sv('m-egr-desc','');}
-function editEgreso(id){const e=(SC.egresos||[]).find(x=>x.id===id);if(!e)return;sv('m-egr-ttl','Editar egreso');sv('m-egr-id',id);sv('m-egr-fecha',e.fecha);sv('m-egr-monto',e.monto);sv('m-egr-persona',e.persona||'');sv('m-egr-desc',e.descripcion||'');document.getElementById('m-egr').classList.add('open');}
+function fillEgrFilters(){
+  const teams=SC.teams||[];
+  const ts=document.getElementById('egr-filter-team');
+  if(ts){const cur=ts.value;ts.innerHTML='<option value="">Todos los equipos</option>'+teams.map(t=>`<option value="${t.id}" ${t.id===cur?'selected':''}>${t.nombre}</option>`).join('');}
+  const meses=[...new Set((SC.egresos||[]).map(e=>e.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();
+  const ms=document.getElementById('egr-filter-mes');
+  if(ms){const cur=ms.value;ms.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>`<option value="${m}" ${m===cur?'selected':''}>${m}</option>`).join('');}
+}
+function prepEgr(){
+  sv('m-egr-ttl','Nuevo egreso');sv('m-egr-id','');sv('m-egr-fecha',today());sv('m-egr-monto','');sv('m-egr-persona','');sv('m-egr-desc','');sv('m-egr-wallet','');sv('m-egr-estado','pendiente');
+  const teams=(SC.teams||[]).filter(t=>t.estado!=='inactivo');
+  const ts=document.getElementById('m-egr-team');
+  if(ts)ts.innerHTML='<option value="">Sin equipo</option>'+teams.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
+  const cs=document.getElementById('m-egr-cht');
+  if(cs)cs.innerHTML='<option value="">Sin chatter</option>';
+}
+function updEgrChts(){
+  const tid=gv('m-egr-team');
+  const chts=(SC.chatters||[]).filter(c=>c.equipo===tid);
+  const cs=document.getElementById('m-egr-cht');
+  if(cs)cs.innerHTML='<option value="">Sin chatter</option>'+chts.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  sv('m-egr-wallet','');
+}
+function updEgrWallet(){
+  const cid=gv('m-egr-cht');
+  const cht=(SC.chatters||[]).find(c=>c.id===cid);
+  if(cht?.wallet)sv('m-egr-wallet',cht.wallet+(cht.banco?' ('+cht.banco+')':''));
+  else sv('m-egr-wallet','');
+}
+function editEgreso(id){
+  const e=(SC.egresos||[]).find(x=>x.id===id);if(!e)return;
+  sv('m-egr-ttl','Editar egreso');sv('m-egr-id',id);sv('m-egr-fecha',e.fecha);sv('m-egr-monto',e.monto);
+  sv('m-egr-persona',e.persona||'');sv('m-egr-desc',e.descripcion||'');sv('m-egr-wallet',e.wallet||'');sv('m-egr-estado',e.estado||'pendiente');
+  const teams=(SC.teams||[]).filter(t=>t.estado!=='inactivo');
+  const ts=document.getElementById('m-egr-team');
+  if(ts){ts.innerHTML='<option value="">Sin equipo</option>'+teams.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');ts.value=e.team_id||'';}
+  const chts=e.team_id?(SC.chatters||[]).filter(c=>c.equipo===e.team_id):(SC.chatters||[]);
+  const cs=document.getElementById('m-egr-cht');
+  if(cs){cs.innerHTML='<option value="">Sin chatter</option>'+chts.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');cs.value=e.chatter_id||'';}
+  document.getElementById('m-egr').classList.add('open');
+}
 async function saveEgreso(){
   const id=gv('m-egr-id');
-  const obj={id:id||uid(),fecha:gv('m-egr-fecha'),monto:parseFloat(gv('m-egr-monto'))||0,persona:gv('m-egr-persona'),descripcion:gv('m-egr-desc')};
+  const cid=gv('m-egr-cht');
+  const cht=(SC.chatters||[]).find(c=>c.id===cid);
+  const obj={id:id||uid(),fecha:gv('m-egr-fecha'),monto:parseFloat(gv('m-egr-monto'))||0,
+    persona:gv('m-egr-persona'),descripcion:gv('m-egr-desc'),
+    team_id:gv('m-egr-team'),team_nombre:getTeamNm(gv('m-egr-team')),
+    chatter_id:cid,chatter_nombre:cht?.nombre||'',
+    wallet:gv('m-egr-wallet'),estado:gv('m-egr-estado')||'pendiente',
+    fecha_pago:gv('m-egr-estado')==='pagado'?today():null};
   if(!obj.fecha||!obj.monto){toast('Completá fecha y monto','err');return;}
   ensureArr('egresos');SC.egresos=id?SC.egresos.map(x=>x.id===id?obj:x):[...SC.egresos,obj];
   await save();renderEgresos();renderDash();closeModal('m-egr');toast('Egreso guardado');
 }
+async function marcarPagado(id){
+  const e=(SC.egresos||[]).find(x=>x.id===id);if(!e)return;
+  e.estado='pagado';e.fecha_pago=today();
+  await save();renderEgresos();toast('Marcado como pagado ✓');
+}
 function renderEgresos(){
-  const all=SC.egresos||[];
-  const mes=all.filter(e=>isThisMon(e.fecha));
+  fillEgrFilters();
+  const fTeam=document.getElementById('egr-filter-team')?.value||'';
+  const fMes=document.getElementById('egr-filter-mes')?.value||'';
+  const fEst=document.getElementById('egr-filter-estado')?.value||'';
+  const allRaw=SC.egresos||[];
+  const all=allRaw.filter(e=>(!fTeam||e.team_id===fTeam)&&(!fMes||e.fecha?.startsWith(fMes))&&(!fEst||e.estado===fEst));
+  const mes=allRaw.filter(e=>isThisMon(e.fecha));
   const tot=mes.reduce((a,e)=>a+(parseFloat(e.monto)||0),0);
+  const pend=mes.filter(e=>e.estado!=='pagado').reduce((a,e)=>a+(parseFloat(e.monto)||0),0);
+  const pag=mes.filter(e=>e.estado==='pagado').reduce((a,e)=>a+(parseFloat(e.monto)||0),0);
   document.getElementById('egr-total').textContent=fMon(tot);
   document.getElementById('kpi-egr').textContent=fMon(tot);
-  const cnms=(SC.chatters||[]).map(c=>c.nombre);
-  document.getElementById('egr-cht').textContent=fMon(mes.filter(e=>cnms.includes(e.persona)).reduce((a,e)=>a+(parseFloat(e.monto)||0),0));
+  const epend=document.getElementById('egr-pendiente');if(epend)epend.textContent=fMon(pend);
+  const epag=document.getElementById('egr-pagado');if(epag)epag.textContent=fMon(pag);
   const tb=document.getElementById('tbody-egr');
-  if(!all.length){tb.innerHTML=emptyRow(5,'💸','Sin egresos registrados');return;}
-  tb.innerHTML=[...all].reverse().map(e=>`<tr>
-    <td>${fDate(e.fecha)}</td><td>${e.persona||'—'}</td><td>${fMon(e.monto)}</td><td>${e.descripcion||'—'}</td>
-    <td><button class="bti" onclick="editEgreso('${e.id}')">✏️</button><button class="bti" onclick="delEgreso('${e.id}')">🗑️</button></td>
-  </tr>`).join('');
+  if(!all.length){tb.innerHTML=emptyRow(8,'💸','Sin egresos registrados');return;}
+  tb.innerHTML=[...all].reverse().map(e=>{
+    const isPaid=e.estado==='pagado';
+    const estadoBadge=isPaid?'<span class="badge bg-green">Pagado</span>':'<span class="badge bg-amber">Pendiente</span>';
+    return`<tr>
+      <td>${fDate(e.fecha)}</td>
+      <td>${e.chatter_nombre||'—'}</td>
+      <td>${e.team_nombre&&e.team_nombre!=='—'?`<span class="badge bg-purple">${e.team_nombre}</span>`:'—'}</td>
+      <td>${e.persona||'—'}</td>
+      <td style="font-size:12px;color:var(--text3);max-width:160px">${e.wallet||'—'}</td>
+      <td><strong>${fMon(e.monto)}</strong></td>
+      <td>${estadoBadge}</td>
+      <td style="white-space:nowrap">
+        ${!isPaid?`<button class="btn btn-sm" style="background:rgba(29,185,84,.15);color:var(--green);border:none;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:12px" onclick="marcarPagado('${e.id}')">✓ Pagar</button>`:''}
+        <button class="bti" onclick="editEgreso('${e.id}')">✏️</button>
+        <button class="bti" onclick="delEgreso('${e.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
 async function delEgreso(id){if(!confirm('¿Eliminar?'))return;SC.egresos=(SC.egresos||[]).filter(x=>x.id!==id);await save();renderEgresos();renderDash();toast('Eliminado');}
 
