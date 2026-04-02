@@ -944,10 +944,12 @@ function renderTeams(){
   tb.innerHTML=SC.teams.map(t=>{
     const chts=(SC.chatters||[]).filter(c=>c.equipo===t.id);
     const mdls=(SC.modelos||[]).filter(m=>m.team===t.id);
+    const chtNombres=chts.length?chts.map(c=>`<span class="badge bg-blue" style="margin:1px">${c.nombre}</span>`).join(' '):'—';
+    const mdlNombres=mdls.length?mdls.map(m=>`<span class="badge bg-cyan" style="margin:1px">${m.nombre}</span>`).join(' '):'—';
     return`<tr>
       <td><strong>${t.nombre}</strong></td>
-      <td>${chts.length} chatter${chts.length!==1?'s':''}</td>
-      <td>${mdls.length} modelo${mdls.length!==1?'s':''}</td>
+      <td style="max-width:220px">${chtNombres}</td>
+      <td style="max-width:220px">${mdlNombres}</td>
       <td>${t.estado==='activo'?'<span class="badge bg-green">Activo</span>':'<span class="badge bg-red">Inactivo</span>'}</td>
       <td><button class="bti" onclick="editTeam('${t.id}')">✏️</button><button class="bti" onclick="delTeam('${t.id}')">🗑️</button></td>
     </tr>`;
