@@ -494,9 +494,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Quincena</label><select class="fs" id="m-ing-q"><option value="q1">1ra quincena (1-15)</option><option value="q2">2da quincena (16-fin)</option></select></div>
     </div>
     <div class="fr2">
+      <div class="fg"><label>Equipo</label><select class="fs" id="m-ing-team" onchange="updIngChts()"></select></div>
       <div class="fg"><label>Chatter</label><select class="fs" id="m-ing-cht" onchange="updIngMdls()"></select></div>
-      <div class="fg"><label>Horas trabajadas (quincena)</label><input class="fi" type="number" id="m-ing-hrs" placeholder="0" min="0" oninput="updIngCalc()"/></div>
     </div>
+    <div class="fg"><label>Horas trabajadas (quincena)</label><input class="fi" type="number" id="m-ing-hrs" placeholder="0" min="0" oninput="updIngCalc()"/></div>
     <div class="fg">
       <label>Facturación por modelo</label>
       <div id="ing-modelos-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
@@ -780,6 +781,9 @@ function fillTeamSelects(){
   // Chatter equipo select
   const chtEq=document.getElementById('m-cht-equipo');
   if(chtEq){const cur=chtEq.value;chtEq.innerHTML='<option value="">Seleccionar equipo...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
+  // Ingreso team select
+  const ingTeam=document.getElementById('m-ing-team');
+  if(ingTeam){const cur=ingTeam.value;ingTeam.innerHTML='<option value="">Seleccionar equipo...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
   // Modelo team select
   const mdlTeam=document.getElementById('m-mdl-team');
   if(mdlTeam){const cur=mdlTeam.value;mdlTeam.innerHTML='<option value="">Seleccionar team...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
@@ -800,6 +804,7 @@ function fillPerfMes(){
   const cur=new Date();
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
+function getTeamNm(id){return(SC.teams||[]).find(t=>t.id===id)?.nombre||id||'—';}
 function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
@@ -882,10 +887,24 @@ function buildChart(team='all'){
 function prepIng(){
   sv('m-ing-ttl','Nuevo ingreso');sv('m-ing-id','');sv('m-ing-fecha',today());sv('m-ing-hrs','');
   const day=parseInt(today().split('-')[2]);sv('m-ing-q',day<=15?'q1':'q2');
-  fillSel('m-ing-cht',(SC.chatters||[]).map(c=>({v:c.id,l:c.nombre})),'Seleccionar chatter...');
-  document.getElementById('ing-modelos-list').innerHTML='<div style="color:var(--text3);font-size:13px">Seleccioná un chatter primero.</div>';
+  // Fill team select
+  const teams=(SC.teams||[]).filter(t=>t.estado!=='inactivo');
+  const ts=document.getElementById('m-ing-team');
+  if(ts)ts.innerHTML='<option value="">Seleccionar equipo...</option>'+teams.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
+  // Clear chatter select
+  const cs=document.getElementById('m-ing-cht');
+  if(cs)cs.innerHTML='<option value="">Primero elegí un equipo</option>';
+  document.getElementById('ing-modelos-list').innerHTML='<div style="color:var(--text3);font-size:13px">Seleccioná un equipo y chatter primero.</div>';
   const lc=document.getElementById('ing-lunes-check');if(lc)lc.checked=false;
   sv('ing-lunes-monto','');
+  updIngCalc();
+}
+function updIngChts(){
+  const tid=gv('m-ing-team');
+  const chts=(SC.chatters||[]).filter(c=>c.equipo===tid);
+  const cs=document.getElementById('m-ing-cht');
+  if(cs)cs.innerHTML='<option value="">Seleccionar chatter...</option>'+chts.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  document.getElementById('ing-modelos-list').innerHTML='<div style="color:var(--text3);font-size:13px">Seleccioná un chatter primero.</div>';
   updIngCalc();
 }
 function updIngMdls(){
@@ -974,7 +993,7 @@ function renderIngresos(){
   const tb=document.getElementById('tbody-ing');
   if(!all.length){tb.innerHTML=emptyRow(9,'💰','Sin ingresos registrados');return;}
   tb.innerHTML=[...all].reverse().map(i=>{
-    const teamNm=(SC.teams||[]).find(t=>t.id===i.equipo)?.nombre||i.equipo||'—';
+    const teamNm=getTeamNm(i.equipo);
     const mdlStr=Object.keys(i.facturacion||{}).map(mid=>{const m=(SC.modelos||[]).find(x=>x.id===mid);return m?m.nombre+' '+fMon(i.facturacion[mid]):''}).filter(Boolean).join(', ')||'—';
     return`<tr>
       <td>${fDate(i.fecha)}</td><td><strong>${i.chatter_nombre||'—'}</strong></td>
@@ -1029,7 +1048,7 @@ async function saveTeam(){
 function renderTeams(){
   ensureArr('teams');
   const tb=document.getElementById('tbody-teams');if(!tb)return;
-  if(!SC.teams.length){tb.innerHTML=emptyRow(6,'🏷️','Sin teams creados. Creá uno para poder agregar chatters.');return;}
+  if(!SC.teams.length){tb.innerHTML=emptyRow(5,'🏷️','Sin teams creados. Creá uno para poder agregar chatters.');return;}
   tb.innerHTML=SC.teams.map(t=>{
     const chts=(SC.chatters||[]).filter(c=>c.equipo===t.id);
     const mdls=(SC.modelos||[]).filter(m=>m.team===t.id);
@@ -1071,7 +1090,7 @@ function renderChatters(){
     const mods=(SC.modelos||[]).filter(m=>m.team===c.equipo);
     return`<tr>
       <td><strong>${c.nombre}</strong></td>
-      <td><span class="badge bg-purple">${(SC.teams||[]).find(t=>t.id===c.equipo)?.nombre||c.equipo||'—'}</span></td>
+      <td><span class="badge bg-purple">${getTeamNm(c.equipo)}</span></td>
       <td><span class="badge bg-blue">${c.turno||'—'}</span></td>
       <td style="font-size:12px;color:var(--text2);max-width:200px">${mods.length?mods.map(m=>`<span class="badge bg-cyan" style="margin:1px">${m.nombre}</span>`).join(' '):'—'}</td>
       <td>5%</td><td>$${PPH}/h</td>
@@ -1198,7 +1217,7 @@ function renderPerf(){
   hb.innerHTML=chts.length===0
     ?'<div style="color:var(--text3);font-size:13px;padding:4px">No hay chatters.</div>'
     :chts.map(c=>`<div class="q-row">
-        <label>${c.nombre} <span style="color:var(--text3);font-size:11px">(${c.equipo||'sin equipo'})</span></label>
+        <label>${c.nombre} <span style="color:var(--text3);font-size:11px">(${getTeamNm(c.equipo)})</span></label>
         <input class="fi" type="number" id="hrs-${c.id}" value="${(SC.horas_quincena[hkey]||{})[c.id]||''}" placeholder="0" min="0" style="max-width:100px"/>
         <span style="font-size:11px;color:var(--text3)">hrs trabajadas</span>
       </div>`).join('');
@@ -1230,7 +1249,7 @@ function renderPerf(){
   // Tabla chatters
   const tb=document.getElementById('tbody-perf');
   if(!rows.length){tb.innerHTML=emptyRow(12,'📊','Sin datos');return;}
-  tb.innerHTML=rows.map(r=>{const tNm=(SC.teams||[]).find(t=>t.id===r.c.equipo)?.nombre||r.c.equipo||'—';return`<tr>
+  tb.innerHTML=rows.map(r=>{const tNm=getTeamNm(r.c.equipo);return`<tr>
     <td><strong>${r.c.nombre}</strong></td>
     <td><span class="badge bg-purple">${tNm}</span></td>
     <td><span class="badge bg-blue">${r.c.turno||'—'}</span></td>
@@ -1257,7 +1276,7 @@ function renderPerf(){
     const ec2=ef*0.05+eh*PPH;const ep=ef-ec2;
     const em2=ef>0?((ep/ef)*100).toFixed(1):'—';
     return`<tr>
-      <td><span class="badge bg-purple">${tObj.nombre||eq}</span></td>
+      <td><span class="badge bg-purple">${tObj.nombre}</span></td>
       <td>${ec.length}</td><td>${em.length}</td><td>${eh}h</td>
       <td>${fMon(ef)}</td><td>${fMon(ec2)}</td>
       <td style="color:${ep>=0?'var(--green)':'var(--red)'}">${fMon(ep)}</td>
