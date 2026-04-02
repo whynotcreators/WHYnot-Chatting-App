@@ -122,55 +122,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .calc-box{background:var(--surface2);border-radius:var(--r-sm);padding:12px 16px;margin:8px 0 16px;font-size:13px}
 .calc-row{display:flex;justify-content:space-between;margin-bottom:5px}
 .calc-row:last-child{margin-bottom:0;padding-top:8px;border-top:1px solid var(--border)}
-
-/* INSTRUCTIVO */
-
-#page-instructivo .ih{background:linear-gradient(135deg,#0f1117 0%,#1a1630 50%,#0f1117 100%);border:1px solid var(--border);border-radius:12px;padding:32px;margin-bottom:22px;position:relative;overflow:hidden}
-#page-instructivo .ih::before{content:'';position:absolute;top:-40%;left:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(108,99,255,.12) 0%,transparent 70%);pointer-events:none}
-#page-instructivo .ibadge{display:inline-flex;align-items:center;gap:6px;background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:500;color:var(--accent);margin-bottom:12px}
-#page-instructivo h2{font-size:26px;font-weight:700;margin-bottom:6px}
-#page-instructivo h2 span{color:var(--accent)}
-#page-instructivo .idesc{font-size:14px;color:var(--text2)}
-#page-instructivo .isec{margin-bottom:40px}
-#page-instructivo .islbl{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-#page-instructivo .isnum{width:26px;height:26px;border-radius:50%;background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
-#page-instructivo .istitle{font-size:17px;font-weight:700}
-#page-instructivo .issub{font-size:12px;color:var(--text3);margin-top:2px}
-#page-instructivo .icard{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
-#page-instructivo .icardh{padding:11px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600}
-#page-instructivo .icardb{padding:16px 18px}
-#page-instructivo .isteps{display:flex;flex-direction:column;gap:10px}
-#page-instructivo .istep{display:flex;gap:11px}
-#page-instructivo .isn{width:22px;height:22px;border-radius:50%;background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:3px}
-#page-instructivo .ist{font-size:13px;font-weight:600;margin-bottom:2px}
-#page-instructivo .isd{font-size:13px;color:var(--text2)}
-#page-instructivo .itip{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--text2);margin-bottom:10px;display:flex;gap:8px}
-#page-instructivo .iinfo{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--text2);margin-bottom:10px;display:flex;gap:8px}
-#page-instructivo .igrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-#page-instructivo .igitem{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;gap:10px}
-#page-instructivo .igico{font-size:17px;flex-shrink:0}
-#page-instructivo .igt{font-size:13px;font-weight:600;margin-bottom:2px}
-#page-instructivo .igd{font-size:11px;color:var(--text3)}
-#page-instructivo .iflow{display:flex;margin-bottom:14px}
-#page-instructivo .ifs{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border);padding:12px 13px}
-#page-instructivo .ifs:first-child{border-radius:10px 0 0 10px}
-#page-instructivo .ifs:last-child{border-radius:0 10px 10px 0}
-#page-instructivo .ifs+.ifs{border-left:none}
-#page-instructivo .ifr{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:2px}
-#page-instructivo .ifl{font-size:12px;font-weight:600;margin-bottom:2px}
-#page-instructivo .ifd{font-size:11px;color:var(--text2)}
-#page-instructivo .ifi{font-size:17px;margin-bottom:5px}
-#page-instructivo .ifa{display:flex;align-items:center;color:var(--text3);font-size:14px;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 2px}
-#page-instructivo .itbl{width:100%;border-collapse:collapse;font-size:13px}
-#page-instructivo .itbl th{text-align:left;padding:8px 13px;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
-#page-instructivo .itbl td{padding:9px 13px;border-bottom:1px solid rgba(36,40,56,.5);color:var(--text2)}
-#page-instructivo .itbl tr:last-child td{border-bottom:none}
-#page-instructivo .itbl td:first-child{color:var(--text);font-weight:500}
-#page-instructivo .ibg{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-#page-instructivo .ibg-g{background:rgba(29,185,84,.15);color:#1db954}
-#page-instructivo .ibg-a{background:rgba(245,158,11,.15);color:#f59e0b}
-#page-instructivo .ibg-r{background:rgba(226,75,74,.15);color:#e24b4a}
-
 </style>
 </head>
 <body>
@@ -249,10 +200,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="sb-item" onclick="goSec('tareas',this)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Tareas
-  </div>
-  <div class="sb-item" onclick="goSec('instructivo',this)">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-    Instructivo
   </div>
   <div id="sb-admin" style="display:none">
     <div class="sb-sep"></div>
@@ -717,166 +664,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <!-- MODALS -->
 
-<!-- INSTRUCTIVO -->
-<div class="page" id="page-instructivo">
-
-
-<div class="ih">
-  <div class="ibadge">📖 Guía de uso</div>
-  <h2>Instructivo <span>Team Leader</span></h2>
-  <p class="idesc">Todo lo que necesitás saber para gestionar el equipo, registrar ingresos, pedir contenido y analizar el rendimiento.</p>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">1</div><div><div class="istitle">Acceso</div></div></div>
-  <div class="icard"><div class="icardh">🔐 Ingresar</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Abrí la app</div><div class="isd">Entrá a <strong style="color:var(--accent)">wh-ynot-chatting-app.vercel.app</strong> desde cualquier navegador.</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Ingresá tus credenciales</div><div class="isd">Usuario y contraseña asignados por La Agencia. Son personales.</div></div></div>
-    <div class="istep"><div class="isn">3</div><div><div class="ist">La app carga tu entorno</div><div class="isd">El sistema reconoce tu usuario y te muestra todo para gestionar el equipo.</div></div></div>
-  </div></div></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">2</div><div><div class="istitle">Estructura de la app</div><div class="issub">Qué hace cada sección</div></div></div>
-  <div class="igrid">
-    <div class="igitem"><span class="igico">🏠</span><div><div class="igt">Dashboard</div><div class="igd">KPIs del mes, gráfico anual, tu comisión, lunes trabajados, tareas, agenda y novedades de Infloww.</div></div></div>
-    <div class="igitem"><span class="igico">💰</span><div><div class="igt">Ingresos</div><div class="igd">Registrás la facturación de cada chatter al final de cada quincena. Los pagos se generan automáticamente.</div></div></div>
-    <div class="igitem"><span class="igico">💳</span><div><div class="igt">Pagos</div><div class="igd">Liquidaciones automáticas. Podés ver cuánto le corresponde a cada chatter y si La Agencia ya pagó.</div></div></div>
-    <div class="igitem"><span class="igico">🏷️</span><div><div class="igt">Teams</div><div class="igd">Grupos de chatters. Creá los teams primero, antes de agregar chatters o modelos.</div></div></div>
-    <div class="igitem"><span class="igico">💬</span><div><div class="igt">Chatters</div><div class="igd">Tu equipo. Cada chatter pertenece a un team y tiene turno, wallet y estado.</div></div></div>
-    <div class="igitem"><span class="igico">⭐</span><div><div class="igt">Modelos</div><div class="igd">Perfiles activos. Se asignan a un team y tienen nicho para filtrar solicitudes.</div></div></div>
-    <div class="igitem"><span class="igico">📋</span><div><div class="igt">Solicitudes</div><div class="igd">Vos detectás qué falta, el CM lo gestiona con la modelo y lo carga en Infloww.</div></div></div>
-    <div class="igitem"><span class="igico">📈</span><div><div class="igt">Rendimiento</div><div class="igd">Comparativas de chatters y equipos: facturación, horas, comisiones, profit y margen.</div></div></div>
-    <div class="igitem"><span class="igico">🎯</span><div><div class="igt">Candidatos</div><div class="igd">Pipeline de candidatos a chatters. Registrá entrevistas y filtrá por disponibilidad horaria.</div></div></div>
-    <div class="igitem"><span class="igico">📅</span><div><div class="igt">Agenda + Tareas</div><div class="igd">Tus eventos con link de call y tareas con prioridad y fecha límite.</div></div></div>
-  </div>
-  <div class="itip"><span>💡</span><span>Orden lógico para arrancar: <strong>Teams → Chatters → Modelos → Ingresos → Rendimiento</strong>.</span></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">3</div><div><div class="istitle">Teams, Chatters y Modelos</div></div></div>
-  <div class="iinfo"><span>ℹ️</span><span>Primero creá el team, luego el chatter asignándolo al team, luego la modelo al mismo team. Sin teams no podés crear nada.</span></div>
-  <div class="icard"><div class="icardh">🏷️ Crear un Team</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Teams → "+ Nuevo team"</div><div class="isd">Nombre (ej: WC-00) y estado Activo.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">💬 Agregar un Chatter</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Chatters → "+ Nuevo chatter"</div><div class="isd">Nombre, equipo, turno y estado.</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Cargá la wallet</div><div class="isd">La wallet aparece pre-cargada en los pagos automáticamente para saber a quién pagarle.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">⭐ Agregar una Modelo</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Modelos → "+ Nueva modelo"</div><div class="isd">Nombre, estado, team y nicho. La modelo queda vinculada al team automáticamente.</div></div></div>
-  </div></div></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">4</div><div><div class="istitle">Registro de Ingresos</div><div class="issub">Al finalizar cada quincena</div></div></div>
-  <div class="itip"><span>⏰</span><span>Q1: días 1-15 · Q2: días 16 al fin de mes. Cada ingreso que cargás genera automáticamente la liquidación en Pagos para que La Agencia ejecute el pago.</span></div>
-  <div class="icard"><div class="icardh">💰 Cómo registrar un ingreso</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Ingresos → "+ Nuevo ingreso"</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Elegí Equipo → Chatter</div><div class="isd">Primero el equipo, luego aparecen solo los chatters de ese equipo.</div></div></div>
-    <div class="istep"><div class="isn">3</div><div><div class="ist">Facturación por modelo</div><div class="isd">Aparecen las modelos activas del team. Ponés cuánto facturó con cada una.</div></div></div>
-    <div class="istep"><div class="isn">4</div><div><div class="ist">Horas trabajadas</div><div class="isd">El tiempo promedio por modelo se calcula automáticamente.</div></div></div>
-    <div class="istep"><div class="isn">5</div><div><div class="ist">¿Trabajó algún lunes?</div><div class="isd">Elegís cuántos (1 o 2) y cuánto facturó ese día. Comisión lunes: 8% en vez del 5% normal.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">🧮 Cálculo de pagos</div><div class="icardb">
-    <table class="itbl"><thead><tr><th>Concepto</th><th>Cálculo</th><th>Ejemplo</th></tr></thead><tbody>
-      <tr><td>Comisión normal</td><td>5% del total facturado</td><td>$10.000 × 5% = $500</td></tr>
-      <tr><td>Comisión lunes</td><td>8% de lo facturado ese lunes</td><td>$2.000 × 8% = $160</td></tr>
-      <tr><td>Costo de horas</td><td>Horas × $2/h</td><td>100h × $2 = $200</td></tr>
-      <tr><td>Total a pagar</td><td>Todo sumado</td><td>$860</td></tr>
-    </tbody></table>
-  </div></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">5</div><div><div class="istitle">Pagos</div><div class="issub">Liquidaciones automáticas</div></div></div>
-  <div class="iinfo"><span>ℹ️</span><span>No requiere carga manual. Cada ingreso genera la liquidación automáticamente. La Agencia ejecuta los pagos y los marca como realizados.</span></div>
-  <div class="icard"><div class="icardh">💳 Qué podés ver en Pagos</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Liquidaciones por chatter</div><div class="isd">Quincena, wallet, comisión normal, comisión lunes y costo de horas.</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Estado de cada pago</div><div class="isd"><span class="ibg ibg-a">Pendiente</span> = La Agencia aún no pagó &nbsp;·&nbsp; <span class="ibg ibg-g">Pagado</span> = ya ejecutado.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">💼 Tu comisión como Team Leader</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">8% sobre los ingresos totales del mes</div><div class="isd">El Dashboard muestra el monto en tiempo real y la fecha del próximo pago (día 1 del mes siguiente).</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Historial en Pagos</div><div class="isd">Podés ver el estado de tu comisión mes a mes en el bloque TL de la sección Pagos.</div></div></div>
-  </div></div></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">6</div><div><div class="istitle">Solicitudes de contenido</div><div class="issub">Flujo TL → CM → Modelo → Infloww</div></div></div>
-  <div class="iflow">
-    <div class="ifs"><div class="ifi">⚡</div><div class="ifr">Team Leader</div><div class="ifl">Detecta que falta contenido</div><div class="ifd">Crea la solicitud con modelo, tipo y descripción</div></div>
-    <div class="ifa">→</div>
-    <div class="ifs"><div class="ifi">✍️</div><div class="ifr">Content Manager</div><div class="ifl">Solicita a la modelo</div><div class="ifd">Cambia estado a "Solicitada"</div></div>
-    <div class="ifa">→</div>
-    <div class="ifs"><div class="ifi">📦</div><div class="ifr">Content Manager</div><div class="ifl">Carga en Infloww</div><div class="ifd">Cuando la modelo entrega, lo sube</div></div>
-    <div class="ifa">→</div>
-    <div class="ifs"><div class="ifi">🟢</div><div class="ifr">Team Leader</div><div class="ifl">Lo ve en el Dashboard</div><div class="ifd">Aparece automáticamente sin que nadie avise</div></div>
-  </div>
-  <div class="icard"><div class="icardh">📋 Crear una solicitud</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Solicitudes → "+ Nueva solicitud"</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Modelo, tipo de contenido y descripción</div><div class="isd">Solo aparecen modelos activas. Cuanto más detalle, mejor lo gestiona el CM.</div></div></div>
-    <div class="istep"><div class="isn">3</div><div><div class="ist">Prioridad</div><div class="isd"><span class="ibg ibg-a">Alta</span> o <span class="ibg ibg-r">🔥 Urgente</span> para que el CM lo vea primero.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">📅 Fechas de entrega estimadas</div><div class="icardb">
-    <table class="itbl"><thead><tr><th>Tipo</th><th>Entrega estimada</th></tr></thead><tbody>
-      <tr><td>Customs Request</td><td>3 días desde que se solicita</td></tr>
-      <tr><td>Todo lo demás</td><td>Viernes siguiente al día de la solicitud</td></tr>
-    </tbody></table>
-    <div style="margin-top:10px;font-size:13px;color:var(--text2)">La app muestra la fecha automáticamente en la tabla y en el <strong>Calendario de entregas</strong> al pie de la sección.</div>
-  </div></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">7</div><div><div class="istitle">Rendimiento</div><div class="issub">Todo automático desde los ingresos</div></div></div>
-  <div class="icard"><div class="icardh">📊 Cómo usarlo</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Filtrá el periodo</div><div class="isd">Equipo, mes y quincena (Q1 o Q2).</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Ordenar las comparativas</div><div class="isd">Mayor facturación, más horas, mayor profit, etc. Aplica a chatters y equipos al mismo tiempo.</div></div></div>
-    <div class="istep"><div class="isn">3</div><div><div class="ist">Filtrar por nicho o modelo</div><div class="isd">Para analizar el rendimiento de perfiles específicos.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">📐 Métricas</div><div class="icardb">
-    <table class="itbl"><thead><tr><th>Métrica</th><th>Qué mide</th></tr></thead><tbody>
-      <tr><td>Hrs trabajadas</td><td>Horas registradas en ingresos del periodo</td></tr>
-      <tr><td>Tiempo/modelo</td><td>Horas ÷ modelos del team (promedio)</td></tr>
-      <tr><td>Facturado</td><td>Total del periodo</td></tr>
-      <tr><td>Comisión 5% / 8%</td><td>Normal y extra por lunes</td></tr>
-      <tr><td>Profit</td><td>Facturado − (comisiones + costo hrs)</td></tr>
-      <tr><td>Margen</td><td>Profit ÷ Facturado × 100</td></tr>
-    </tbody></table>
-  </div></div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">8</div><div><div class="istitle">Dashboard</div><div class="issub">Tu vista de control diario</div></div></div>
-  <div class="igrid">
-    <div class="igitem"><span class="igico">📊</span><div><div class="igt">KPIs del mes</div><div class="igd">Ingresos, egresos, chatters y modelos activas. Filtrables por equipo y quincena.</div></div></div>
-    <div class="igitem"><span class="igico">💼</span><div><div class="igt">Comisión TL</div><div class="igd">Tu 8% del mes y la fecha del próximo pago.</div></div></div>
-    <div class="igitem"><span class="igico">🟢</span><div><div class="igt">Cargado en Infloww hoy</div><div class="igd">Contenido que el CM subió hoy. Aparece automáticamente.</div></div></div>
-    <div class="igitem"><span class="igico">⏳</span><div><div class="igt">Próximas entregas</div><div class="igd">Las 5 solicitudes más cercanas a su fecha de entrega.</div></div></div>
-    <div class="igitem"><span class="igico">🗓️</span><div><div class="igt">Lunes trabajados</div><div class="igd">Detalle de cada lunes del mes: monto y comisión 8% por chatter.</div></div></div>
-    <div class="igitem"><span class="igico">📋</span><div><div class="igt">Tareas y Agenda</div><div class="igd">Tus tareas pendientes y eventos del día.</div></div></div>
-  </div>
-</div>
-
-<div class="isec">
-  <div class="islbl"><div class="isnum">9</div><div><div class="istitle">Referencia rápida</div></div></div>
-  <div class="icard" style="margin-bottom:10px"><div class="icardh">🔄 Rutina quincenal</div><div class="icardb"><div class="isteps">
-    <div class="istep"><div class="isn">1</div><div><div class="ist">Registrar ingresos de cada chatter</div><div class="isd">Ingresos → + Nuevo ingreso. Los pagos se generan solos.</div></div></div>
-    <div class="istep"><div class="isn">2</div><div><div class="ist">Verificar liquidaciones en Pagos</div><div class="isd">Monto, wallet y estado de cada chatter.</div></div></div>
-    <div class="istep"><div class="isn">3</div><div><div class="ist">Revisar Rendimiento</div><div class="isd">Comparativa de la quincena: quién facturó más, márgenes, horas.</div></div></div>
-  </div></div></div>
-  <div class="icard"><div class="icardh">⚡ Atajos útiles</div><div class="icardb">
-    <table class="itbl"><thead><tr><th>Quiero...</th><th>Dónde ir</th></tr></thead><tbody>
-      <tr><td>Ver cuánto le pagan a un chatter</td><td>Pagos → filtrar por nombre/mes</td></tr>
-      <tr><td>Ver qué contenido falta</td><td>Solicitudes → filtro "Pendientes"</td></tr>
-      <tr><td>Ver qué subió el CM hoy</td><td>Dashboard → "Cargado en Infloww hoy"</td></tr>
-      <tr><td>Ranking de chatters</td><td>Rendimiento → Ordenar por "Mayor facturación"</td></tr>
-      <tr><td>Próximas entregas</td><td>Solicitudes → Calendario de entregas</td></tr>
-      <tr><td>Agregar candidato a chatter</td><td>Candidatos → + Nuevo candidato</td></tr>
-    </tbody></table>
-  </div></div>
-</div>
-
-</div>
 
 <div class="mbg" id="m-ing">
   <div class="modal modal-lg">
@@ -1157,7 +944,6 @@ function goSec(sec,el){
   if(sec==='teams')renderTeams();
   if(sec==='pagos'){renderPagos();renderPagosTL();}
   if(sec==='solicitudes'){renderSolicitudes();}
-  if(sec==='instructivo'){}
 }
 function goStab(section,tab,el){
   if(tab==='config')loadConfig();
