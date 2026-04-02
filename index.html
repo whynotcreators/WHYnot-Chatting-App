@@ -387,20 +387,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- SOLICITUDES -->
 <div class="page" id="page-solicitudes">
   <div class="ph">
-    <div class="ph-l"><div class="pt">Solicitudes</div><div class="ps">Solicitudes de contenido</div></div>
+    <div class="ph-l"><div class="pt">Solicitudes</div><div class="ps">Flujo de contenido: TL → Content Manager → Modelo → Inflow</div></div>
     <button class="btn btn-primary" onclick="openModal('m-sol')">+ Nueva solicitud</button>
   </div>
-  <div class="rbox">📌 <strong>Reglas:</strong> El contenido se puede solicitar cualquier día. La entrega de <strong style="color:var(--green)">contenido general</strong> es el <strong style="color:var(--green)">viernes siguiente</strong>. Los <strong style="color:var(--green)">Customs</strong> se entregan en <strong style="color:var(--green)">máximo 3 días</strong>.</div>
-  <div class="ptabs">
-    <div class="ptab active" onclick="fSol('todas',this)">Todas</div>
-    <div class="ptab" onclick="fSol('pendiente',this)">Pendientes</div>
-    <div class="ptab" onclick="fSol('en_proceso',this)">En proceso</div>
-    <div class="ptab" onclick="fSol('completada',this)">Completadas</div>
-    <div class="ptab" onclick="fSol('cancelada',this)">Canceladas</div>
+
+  <!-- KPIs solicitudes -->
+  <div class="krow k4" id="sol-kpis">
+    <div class="kcard"><div class="lbl">Pendientes</div><div class="val" id="sol-k-pend" style="color:var(--amber)">0</div></div>
+    <div class="kcard"><div class="lbl">Solicitadas a modelo</div><div class="val" id="sol-k-sol" style="color:var(--blue)">0</div></div>
+    <div class="kcard"><div class="lbl">En producción</div><div class="val" id="sol-k-prod" style="color:var(--pink)">0</div></div>
+    <div class="kcard"><div class="lbl">Cargadas en Inflow</div><div class="val" id="sol-k-inflow" style="color:var(--green)">0</div></div>
   </div>
+
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <div class="ptabs" style="margin-bottom:0;border-bottom:none;flex-wrap:wrap">
+      <div class="ptab active" onclick="fSol('todas',this)">Todas</div>
+      <div class="ptab" onclick="fSol('pendiente',this)">🟡 Pendientes</div>
+      <div class="ptab" onclick="fSol('solicitada',this)">🔵 Solicitadas</div>
+      <div class="ptab" onclick="fSol('produccion',this)">🟠 En producción</div>
+      <div class="ptab" onclick="fSol('inflow',this)">🟢 En Inflow</div>
+      <div class="ptab" onclick="fSol('cancelada',this)">Canceladas</div>
+    </div>
+    <select class="fs" id="sol-filter-modelo" onchange="renderSolicitudes()" style="width:auto;padding:7px 12px;font-size:13px;margin-left:auto"><option value="">Todas las modelos</option></select>
+    <select class="fs" id="sol-filter-tipo" onchange="renderSolicitudes()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los tipos</option></select>
+  </div>
+
   <div class="card">
-    <table class="tbl"><thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo</th><th>Fan</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
-    <tbody id="tbody-sol"></tbody></table>
+    <table class="tbl">
+      <thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo de contenido</th><th>Descripción</th><th>Estado</th><th>Acciones</th><th></th></tr></thead>
+      <tbody id="tbody-sol"></tbody>
+    </table>
   </div>
 </div>
 
@@ -723,13 +740,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-sol-fecha"/></div>
       <div class="fg"><label>Modelo</label><select class="fs" id="m-sol-mdl"></select></div>
     </div>
-    <div class="fr2">
-      <div class="fg"><label>Tipo</label><select class="fs" id="m-sol-tipo"></select></div>
-      <div class="fg"><label>Monto (USD)</label><input class="fi" type="number" id="m-sol-monto" placeholder="0"/></div>
+    <div class="fg"><label>Tipo de contenido</label><select class="fs" id="m-sol-tipo"></select></div>
+    <div class="fg"><label>Descripción / Detalle</label><textarea class="fta" id="m-sol-desc" placeholder="Describí qué contenido específico necesitás..."></textarea></div>
+    <div class="fg"><label>Prioridad</label>
+      <select class="fs" id="m-sol-prio">
+        <option value="normal">Normal</option>
+        <option value="alta">Alta</option>
+        <option value="urgente">Urgente</option>
+      </select>
     </div>
-    <div class="fg"><label>Fan</label><input class="fi" id="m-sol-fan" placeholder="Usuario del fan..."/></div>
-    <div class="fg"><label>Descripción</label><textarea class="fta" id="m-sol-desc" placeholder="Detalle de la solicitud..."></textarea></div>
-    <div class="fg"><label>Estado</label><select class="fs" id="m-sol-est"><option value="pendiente">Pendiente</option><option value="en_proceso">En proceso</option><option value="completada">Completada</option><option value="cancelada">Cancelada</option></select></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-sol')">Cancelar</button><button class="btn btn-primary" onclick="saveSolicitud()">Guardar</button></div>
   </div>
 </div>
@@ -1040,7 +1059,7 @@ function getCfg(){
     comLunes: parseFloat(cfg.com_lunes)||8
   };
 }
-function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
+function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();fillSolFilters();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
 function renderDash(){
@@ -1500,34 +1519,158 @@ function renderModelos(){
 async function delModelo(id){if(!confirm('¿Eliminar?'))return;SC.modelos=(SC.modelos||[]).filter(x=>x.id!==id);await save();renderModelos();renderTeams();renderChatters();renderDash();toast('Eliminada');}
 
 // SOLICITUDES
-function bSol(s){const m={pendiente:['bg-amber','Pendiente'],en_proceso:['bg-blue','En proceso'],completada:['bg-green','Completada'],cancelada:['bg-red','Cancelada']};const[c,l]=m[s]||['bg-amber','Pendiente'];return`<span class="badge ${c}">${l}</span>`;}
-function fSol(f,el){solF=f;document.querySelectorAll('#page-solicitudes .ptab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderSolicitudes();}
-function updateBadgeSol(){const n=(SC.solicitudes||[]).filter(s=>s.estado==='pendiente').length;const b=document.getElementById('badge-sol');if(n>0){b.textContent=n;b.style.display='';}else b.style.display='none';}
+const SOL_ESTADOS = {
+  pendiente:  {label:'Pendiente',        cls:'bg-amber',  icon:'🟡'},
+  solicitada: {label:'Solicitada a modelo', cls:'bg-blue', icon:'🔵'},
+  produccion: {label:'En producción',    cls:'bg-pink',   icon:'🟠'},
+  inflow:     {label:'Cargado en Inflow',cls:'bg-green',  icon:'🟢'},
+  cancelada:  {label:'Cancelada',        cls:'bg-red',    icon:'❌'},
+};
+
+function bSol(s){
+  const e=SOL_ESTADOS[s]||SOL_ESTADOS.pendiente;
+  return`<span class="badge ${e.cls}">${e.icon} ${e.label}</span>`;
+}
+
+function fSol(f,el){
+  solF=f;
+  document.querySelectorAll('#page-solicitudes .ptab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderSolicitudes();
+}
+
+function updateBadgeSol(){
+  const n=(SC.solicitudes||[]).filter(s=>s.estado==='pendiente').length;
+  const b=document.getElementById('badge-sol');
+  if(b){if(n>0){b.textContent=n;b.style.display='';}else b.style.display='none';}
+}
+
+function fillSolFilters(){
+  // Modelos activas
+  const ms=document.getElementById('sol-filter-modelo');
+  if(ms){
+    const cur=ms.value;
+    ms.innerHTML='<option value="">Todas las modelos</option>'+(SC.modelos||[]).filter(m=>m.estado==='activa').map(m=>`<option value="${m.id}" ${m.id===cur?'selected':''}>${m.nombre}</option>`).join('');
+  }
+  // Tipos de contenido
+  const ts=document.getElementById('sol-filter-tipo');
+  if(ts){
+    const tipos=SC.tiposContenido?.length?SC.tiposContenido:TIPOS_DEF;
+    const cur=ts.value;
+    ts.innerHTML='<option value="">Todos los tipos</option>'+tipos.map(t=>`<option value="${t}" ${t===cur?'selected':''}>${t}</option>`).join('');
+  }
+}
+
 function prepSol(){
-  sv('m-sol-ttl','Nueva solicitud');['m-sol-id','m-sol-fan','m-sol-desc'].forEach(id=>sv(id,''));sv('m-sol-fecha',today());sv('m-sol-monto','');sv('m-sol-est','pendiente');
-  fillSel('m-sol-mdl',(SC.modelos||[]).map(m=>({v:m.nombre,l:m.nombre})),'Seleccionar modelo...');
+  sv('m-sol-ttl','Nueva solicitud');
+  ['m-sol-id','m-sol-desc'].forEach(id=>sv(id,''));
+  sv('m-sol-fecha',today());
+  sv('m-sol-prio','normal');
+  // Modelos activas
+  const mdls=(SC.modelos||[]).filter(m=>m.estado==='activa');
+  fillSel('m-sol-mdl',mdls.map(m=>({v:m.id,l:m.nombre})),'Seleccionar modelo...');
+  // Tipos
   const tipos=SC.tiposContenido?.length?SC.tiposContenido:TIPOS_DEF;
   document.getElementById('m-sol-tipo').innerHTML=tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
 }
-function editSolicitud(id){const s=(SC.solicitudes||[]).find(x=>x.id===id);if(!s)return;sv('m-sol-ttl','Editar solicitud');sv('m-sol-id',id);sv('m-sol-fecha',s.fecha);sv('m-sol-monto',s.monto||0);sv('m-sol-fan',s.fan||'');sv('m-sol-desc',s.descripcion||'');sv('m-sol-est',s.estado||'pendiente');fillSel('m-sol-mdl',(SC.modelos||[]).map(m=>({v:m.nombre,l:m.nombre})),'Seleccionar modelo...',s.modelo);const tipos=SC.tiposContenido?.length?SC.tiposContenido:TIPOS_DEF;document.getElementById('m-sol-tipo').innerHTML=tipos.map(t=>`<option value="${t}" ${t===s.tipo?'selected':''}>${t}</option>`).join('');document.getElementById('m-sol').classList.add('open');}
+
+function editSolicitud(id){
+  const s=(SC.solicitudes||[]).find(x=>x.id===id);if(!s)return;
+  sv('m-sol-ttl','Editar solicitud');sv('m-sol-id',id);
+  sv('m-sol-fecha',s.fecha);sv('m-sol-desc',s.descripcion||'');sv('m-sol-prio',s.prioridad||'normal');
+  const mdls=(SC.modelos||[]).filter(m=>m.estado==='activa');
+  fillSel('m-sol-mdl',mdls.map(m=>({v:m.id,l:m.nombre})),'Seleccionar modelo...',s.modelo_id);
+  const tipos=SC.tiposContenido?.length?SC.tiposContenido:TIPOS_DEF;
+  document.getElementById('m-sol-tipo').innerHTML=tipos.map(t=>`<option value="${t}" ${t===s.tipo?'selected':''}>${t}</option>`).join('');
+  document.getElementById('m-sol').classList.add('open');
+}
+
 async function saveSolicitud(){
   const id=gv('m-sol-id');
-  const obj={id:id||uid(),fecha:gv('m-sol-fecha'),modelo:gv('m-sol-mdl'),tipo:gv('m-sol-tipo'),monto:parseFloat(gv('m-sol-monto'))||0,fan:gv('m-sol-fan'),descripcion:gv('m-sol-desc'),estado:gv('m-sol-est')};
-  if(!obj.fecha){toast('Ingresá la fecha','err');return;}
-  ensureArr('solicitudes');SC.solicitudes=id?SC.solicitudes.map(x=>x.id===id?obj:x):[...SC.solicitudes,obj];
+  const mdlId=gv('m-sol-mdl');
+  const mdl=(SC.modelos||[]).find(m=>m.id===mdlId);
+  const obj={
+    id:id||uid(), fecha:gv('m-sol-fecha'),
+    modelo_id:mdlId, modelo:mdl?.nombre||'',
+    tipo:gv('m-sol-tipo'), descripcion:gv('m-sol-desc'),
+    prioridad:gv('m-sol-prio'),
+    estado:id?((SC.solicitudes||[]).find(x=>x.id===id)?.estado||'pendiente'):'pendiente',
+    creado_por:CU?.nombre||'TL'
+  };
+  if(!obj.fecha||!obj.modelo_id){toast('Completá fecha y modelo','err');return;}
+  ensureArr('solicitudes');
+  SC.solicitudes=id?SC.solicitudes.map(x=>x.id===id?obj:x):[...SC.solicitudes,obj];
   await save();renderSolicitudes();renderDash();updateBadgeSol();closeModal('m-sol');toast('Solicitud guardada');
 }
+
+async function cambiarEstadoSol(id, nuevoEstado){
+  const s=(SC.solicitudes||[]).find(x=>x.id===id);if(!s)return;
+  s.estado=nuevoEstado;
+  if(nuevoEstado==='inflow')s.fecha_inflow=today();
+  await save();renderSolicitudes();updateBadgeSol();renderDash();
+  toast(`Estado: ${SOL_ESTADOS[nuevoEstado]?.label||nuevoEstado} ✓`);
+}
+
 function renderSolicitudes(){
-  let all=SC.solicitudes||[];if(solF!=='todas')all=all.filter(s=>s.estado===solF);
+  fillSolFilters();
+  let all=SC.solicitudes||[];
+  if(solF!=='todas')all=all.filter(s=>s.estado===solF);
+  const fMdl=document.getElementById('sol-filter-modelo')?.value||'';
+  const fTipo=document.getElementById('sol-filter-tipo')?.value||'';
+  if(fMdl)all=all.filter(s=>s.modelo_id===fMdl);
+  if(fTipo)all=all.filter(s=>s.tipo===fTipo);
+
+  // KPIs
+  const todos=SC.solicitudes||[];
+  const kMap={pendiente:'sol-k-pend',solicitada:'sol-k-sol',produccion:'sol-k-prod',inflow:'sol-k-inflow'};
+  Object.entries(kMap).forEach(([est,elId])=>{
+    const el=document.getElementById(elId);
+    if(el)el.textContent=todos.filter(s=>s.estado===est).length;
+  });
+
   const tb=document.getElementById('tbody-sol');
   if(!all.length){tb.innerHTML=emptyRow(7,'📋','Sin solicitudes');return;}
+
+  const prioBadge={normal:'',alta:'<span class="badge bg-amber" style="font-size:10px">Alta</span>',urgente:'<span class="badge bg-red" style="font-size:10px">🔥 Urgente</span>'};
+
+  // Botones de avance de estado según estado actual
+  function accionesEstado(s){
+    const btns=[];
+    if(s.estado==='pendiente'){
+      btns.push(`<button class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','solicitada')">🔵 Solicitar a modelo</button>`);
+    }
+    if(s.estado==='solicitada'){
+      btns.push(`<button class="btn btn-sm" style="background:rgba(236,72,153,.15);color:var(--pink);border:1px solid rgba(236,72,153,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','produccion')">🟠 En producción</button>`);
+    }
+    if(s.estado==='produccion'){
+      btns.push(`<button class="btn btn-sm" style="background:rgba(29,185,84,.15);color:var(--green);border:1px solid rgba(29,185,84,.3);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px" onclick="cambiarEstadoSol('${s.id}','inflow')">🟢 Cargado en Inflow</button>`);
+    }
+    if(s.estado!=='cancelada'&&s.estado!=='inflow'){
+      btns.push(`<button class="bti" style="color:var(--red);font-size:11px" onclick="cambiarEstadoSol('${s.id}','cancelada')" title="Cancelar">✕</button>`);
+    }
+    return btns.join(' ');
+  }
+
   tb.innerHTML=[...all].reverse().map(s=>`<tr>
-    <td>${fDate(s.fecha)}</td><td>${s.modelo||'—'}</td><td>${s.tipo||'—'}</td>
-    <td>${s.fan||'—'}</td><td>${fMon(s.monto)}</td><td>${bSol(s.estado)}</td>
+    <td>
+      <div style="font-size:13px">${fDate(s.fecha)}</div>
+      ${prioBadge[s.prioridad]||''}
+    </td>
+    <td><strong>${s.modelo||'—'}</strong></td>
+    <td><span class="badge bg-purple" style="font-size:11px">${s.tipo||'—'}</span></td>
+    <td style="font-size:12px;color:var(--text2);max-width:220px">${s.descripcion||'—'}</td>
+    <td>${bSol(s.estado)}</td>
+    <td style="white-space:nowrap">${accionesEstado(s)}</td>
     <td><button class="bti" onclick="editSolicitud('${s.id}')">✏️</button><button class="bti" onclick="delSolicitud('${s.id}')">🗑️</button></td>
   </tr>`).join('');
 }
-async function delSolicitud(id){if(!confirm('¿Eliminar?'))return;SC.solicitudes=(SC.solicitudes||[]).filter(x=>x.id!==id);await save();renderSolicitudes();renderDash();updateBadgeSol();toast('Eliminada');}
+
+async function delSolicitud(id){
+  if(!confirm('¿Eliminar?'))return;
+  SC.solicitudes=(SC.solicitudes||[]).filter(x=>x.id!==id);
+  await save();renderSolicitudes();renderDash();updateBadgeSol();toast('Eliminada');
+}
+
 
 // CANDIDATOS
 function bCand(s){const m={contactado:['bg-blue','Contactado'],interesado:['bg-amber','Interesado'],incorporado:['bg-green','Incorporado'],descartado:['bg-red','Descartado']};const[c,l]=m[s]||['bg-blue','Contactado'];return`<span class="badge ${c}">${l}</span>`;}
