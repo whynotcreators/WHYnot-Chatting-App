@@ -274,6 +274,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div id="dash-agenda-hoy"></div>
     </div>
   </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+    <div class="card" style="margin-bottom:0;border-color:rgba(29,185,84,.3)">
+      <div class="card-hdr" style="background:rgba(29,185,84,.05)">
+        <div class="card-ttl">🟢 Cargado en Infloww hoy</div>
+        <span style="font-size:11px;color:var(--text3)">Listo para chatters</span>
+      </div>
+      <div id="dash-inflow-hoy"></div>
+    </div>
+    <div class="card" style="margin-bottom:0;border-color:rgba(245,158,11,.3)">
+      <div class="card-hdr" style="background:rgba(245,158,11,.05)">
+        <div class="card-ttl">⏳ Próximas entregas</div>
+        <span style="font-size:11px;color:var(--text3)">Contenido pendiente</span>
+      </div>
+      <div id="dash-proximas-entregas"></div>
+    </div>
+  </div>
   <div class="card" style="margin-top:16px">
     <div class="card-hdr"><div class="card-ttl">🗓️ Lunes trabajados del mes</div></div>
     <div id="dash-lunes-body"></div>
@@ -415,9 +431,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <div class="card">
     <table class="tbl">
-      <thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo de contenido</th><th>Descripción</th><th>Estado</th><th>Acciones</th><th></th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Modelo</th><th>Tipo de contenido</th><th>Descripción</th><th>Entrega estimada</th><th>Estado</th><th>Acciones</th><th></th></tr></thead>
       <tbody id="tbody-sol"></tbody>
     </table>
+  </div>
+
+  <!-- Calendario de entregas -->
+  <div class="card" style="margin-top:4px">
+    <div class="card-hdr">
+      <div class="card-ttl">📆 Calendario de entregas</div>
+      <span style="font-size:12px;color:var(--text3)">Contenido pendiente ordenado por fecha de entrega</span>
+    </div>
+    <div id="sol-calendario" style="padding:16px"></div>
   </div>
 </div>
 
@@ -867,6 +892,7 @@ function goSec(sec,el){
   if(sec==='dashboard')renderDash();
   if(sec==='teams')renderTeams();
   if(sec==='pagos'){renderPagos();renderPagosTL();}
+  if(sec==='solicitudes'){renderSolicitudes();}
 }
 function goStab(section,tab,el){
   if(tab==='config')loadConfig();
@@ -1059,7 +1085,134 @@ function getCfg(){
     comLunes: parseFloat(cfg.com_lunes)||8
   };
 }
-function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();fillSolFilters();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
+
+// SOLICITUDES — helpers de entrega
+function getFechaEntrega(sol){
+  if(!sol.fecha)return null;
+  const isCustom=(sol.tipo||'').toLowerCase().includes('custom');
+  const d=new Date(sol.fecha+'T12:00:00');
+  if(isCustom){
+    d.setDate(d.getDate()+3);
+  } else {
+    // Próximo viernes
+    const dow=d.getDay(); // 0=dom, 5=vie
+    const daysToFri=dow<=5?(5-dow):(5-dow+7);
+    if(daysToFri===0&&dow===5)d.setDate(d.getDate()+7); // si ya es viernes, el siguiente
+    else d.setDate(d.getDate()+(daysToFri||7));
+  }
+  return d.toISOString().split('T')[0];
+}
+function fEntrega(sol){
+  const fe=getFechaEntrega(sol);
+  if(!fe)return '—';
+  const hoy=today();
+  const diff=Math.ceil((new Date(fe+'T12:00:00')-new Date(hoy+'T12:00:00'))/(1000*60*60*24));
+  let color='var(--text2)';
+  let label='';
+  if(diff<0){color='var(--red)';label=' ⚠️ Vencida';}
+  else if(diff===0){color='var(--amber)';label=' ← Hoy';}
+  else if(diff===1){color='var(--amber)';label=' ← Mañana';}
+  return`<span style="color:${color};font-size:12px">${fDate(fe)}${label}</span>`;
+}
+
+// Widget dashboard: cargado en Infloww hoy
+function renderDashInflowHoy(){
+  const el=document.getElementById('dash-inflow-hoy');if(!el)return;
+  const hoy=today();
+  const sols=(SC.solicitudes||[]).filter(s=>s.estado==='inflow'&&s.fecha_inflow===hoy);
+  if(!sols.length){
+    el.innerHTML='<div class="empty" style="padding:20px"><div class="empty-t">Nada cargado hoy aún</div></div>';
+    return;
+  }
+  el.innerHTML='<div style="padding:4px">'+sols.map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(36,40,56,.4)">
+      <span style="font-size:18px">🟢</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${s.modelo||'—'}</div>
+        <div style="font-size:11px;color:var(--text3)">${s.tipo||'—'}</div>
+      </div>
+      ${s.descripcion?`<div style="font-size:11px;color:var(--text3);max-width:140px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap">${s.descripcion}</div>`:''}
+    </div>`).join('')+'</div>';
+}
+
+// Widget dashboard: próximas entregas
+function renderDashProximasEntregas(){
+  const el=document.getElementById('dash-proximas-entregas');if(!el)return;
+  const hoy=today();
+  // Solicitudes pendientes (no en inflow ni canceladas), ordenadas por fecha entrega
+  const sols=(SC.solicitudes||[])
+    .filter(s=>s.estado!=='inflow'&&s.estado!=='cancelada')
+    .map(s=>({...s,fechaEntrega:getFechaEntrega(s)}))
+    .filter(s=>s.fechaEntrega)
+    .sort((a,b)=>a.fechaEntrega>b.fechaEntrega?1:-1)
+    .slice(0,5); // top 5 más próximas
+  if(!sols.length){
+    el.innerHTML='<div class="empty" style="padding:20px"><div class="empty-t">Sin entregas pendientes ✓</div></div>';
+    return;
+  }
+  el.innerHTML='<div style="padding:4px">'+sols.map(s=>{
+    const diff=Math.ceil((new Date(s.fechaEntrega+'T12:00:00')-new Date(hoy+'T12:00:00'))/(1000*60*60*24));
+    const urgente=diff<=0;const hoyFlag=diff===0;const manana=diff===1;
+    const color=urgente?'var(--red)':manana||hoyFlag?'var(--amber)':'var(--text2)';
+    const label=urgente?'⚠️ Vencida':hoyFlag?'Hoy':manana?'Mañana':`En ${diff} días`;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(36,40,56,.4)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${s.modelo||'—'}</div>
+        <div style="font-size:11px;color:var(--text3)">${s.tipo||'—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;font-weight:600;color:${color}">${label}</div>
+        <div style="font-size:11px;color:var(--text3)">${fDate(s.fechaEntrega)}</div>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// Calendario de entregas en sección solicitudes
+function renderSolCalendario(){
+  const el=document.getElementById('sol-calendario');if(!el)return;
+  const hoy=today();
+  const sols=(SC.solicitudes||[])
+    .filter(s=>s.estado!=='inflow'&&s.estado!=='cancelada')
+    .map(s=>({...s,fechaEntrega:getFechaEntrega(s)}))
+    .filter(s=>s.fechaEntrega)
+    .sort((a,b)=>a.fechaEntrega>b.fechaEntrega?1:-1);
+  if(!sols.length){el.innerHTML='<div style="color:var(--text3);font-size:13px">Sin entregas pendientes.</div>';return;}
+  // Agrupar por fecha de entrega
+  const grupos={};
+  sols.forEach(s=>{
+    if(!grupos[s.fechaEntrega])grupos[s.fechaEntrega]=[];
+    grupos[s.fechaEntrega].push(s);
+  });
+  el.innerHTML=Object.entries(grupos).map(([fecha,items])=>{
+    const diff=Math.ceil((new Date(fecha+'T12:00:00')-new Date(hoy+'T12:00:00'))/(1000*60*60*24));
+    const urgente=diff<0;const hoyFlag=diff===0;const manana=diff===1;
+    const headerColor=urgente?'var(--red)':hoyFlag||manana?'var(--amber)':'var(--accent)';
+    const label=urgente?`⚠️ Vencida (${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''})`:hoyFlag?'Hoy':manana?'Mañana':`En ${diff} días`;
+    return`<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:3px;height:20px;background:${headerColor};border-radius:2px"></div>
+        <span style="font-size:14px;font-weight:600;color:${headerColor}">${fDate(fecha)}</span>
+        <span style="font-size:12px;color:var(--text3)">${label}</span>
+        <span class="badge" style="background:rgba(108,99,255,.15);color:var(--accent)">${items.length} contenido${items.length!==1?'s':''}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-left:13px">
+        ${items.map(s=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:var(--r-sm);border-left:3px solid ${headerColor}">
+            <div style="flex:1">
+              <span style="font-size:13px;font-weight:500">${s.modelo||'—'}</span>
+              <span class="badge bg-purple" style="margin-left:8px;font-size:10px">${s.tipo||'—'}</span>
+              ${s.prioridad==='urgente'?'<span class="badge bg-red" style="margin-left:4px;font-size:10px">🔥 Urgente</span>':s.prioridad==='alta'?'<span class="badge bg-amber" style="margin-left:4px;font-size:10px">Alta</span>':''}
+            </div>
+            <div style="font-size:11px;color:var(--text3);max-width:200px">${s.descripcion||''}</div>
+            <div>${(SOL_ESTADOS[s.estado]?`<span class="badge ${SOL_ESTADOS[s.estado].cls}" style="font-size:10px">${SOL_ESTADOS[s.estado].icon} ${SOL_ESTADOS[s.estado].label}</span>`:'')}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();fillSolFilters();renderDashInflowHoy();renderDashProximasEntregas();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
 function renderDash(){
@@ -1084,6 +1237,8 @@ function renderDash(){
   renderHoy();
   renderDashLunes();
   renderDashTL();
+  renderDashInflowHoy();
+  renderDashProximasEntregas();
 }
 function renderHoy(){
   const hoy=today();
@@ -1607,7 +1762,7 @@ async function cambiarEstadoSol(id, nuevoEstado){
   const s=(SC.solicitudes||[]).find(x=>x.id===id);if(!s)return;
   s.estado=nuevoEstado;
   if(nuevoEstado==='inflow')s.fecha_inflow=today();
-  await save();renderSolicitudes();updateBadgeSol();renderDash();
+  await save();renderSolicitudes();updateBadgeSol();renderDash();renderDashInflowHoy();renderDashProximasEntregas();
   toast(`Estado: ${SOL_ESTADOS[nuevoEstado]?.label||nuevoEstado} ✓`);
 }
 
@@ -1658,11 +1813,13 @@ function renderSolicitudes(){
     </td>
     <td><strong>${s.modelo||'—'}</strong></td>
     <td><span class="badge bg-purple" style="font-size:11px">${s.tipo||'—'}</span></td>
-    <td style="font-size:12px;color:var(--text2);max-width:220px">${s.descripcion||'—'}</td>
+    <td style="font-size:12px;color:var(--text2);max-width:180px">${s.descripcion||'—'}</td>
+    <td>${s.estado!=='inflow'&&s.estado!=='cancelada'?fEntrega(s):'—'}</td>
     <td>${bSol(s.estado)}</td>
     <td style="white-space:nowrap">${accionesEstado(s)}</td>
     <td><button class="bti" onclick="editSolicitud('${s.id}')">✏️</button><button class="bti" onclick="delSolicitud('${s.id}')">🗑️</button></td>
   </tr>`).join('');
+  renderSolCalendario();
 }
 
 async function delSolicitud(id){
