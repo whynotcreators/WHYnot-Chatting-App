@@ -1703,7 +1703,36 @@ function updateBadgeSol(){
   if(b){if(n>0){b.textContent=n;b.style.display='';}else b.style.display='none';}
 }
 
+function getWeekLabel(fecha){
+  const d=new Date(fecha+'T12:00:00');
+  const mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7)); // lunes
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  return mon.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' → '+sun.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+}
+function getWeekKey(fecha){
+  const d=new Date(fecha+'T12:00:00');
+  const mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));
+  return mon.toISOString().split('T')[0];
+}
 function fillSolFilters(){
+  // Meses
+  const msel=document.getElementById('sol-filter-mes');
+  if(msel){
+    const cur=msel.value;
+    const meses=[...new Set((SC.solicitudes||[]).map(s=>s.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();
+    msel.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{
+      const [y,mo]=m.split('-');
+      const label=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+      return`<option value="${m}" ${m===cur?'selected':''}>${label}</option>`;
+    }).join('');
+  }
+  // Semanas
+  const ssel=document.getElementById('sol-filter-semana');
+  if(ssel){
+    const cur=ssel.value;
+    const semanas=[...new Map((SC.solicitudes||[]).filter(s=>s.fecha).map(s=>[getWeekKey(s.fecha),getWeekLabel(s.fecha)])).entries()].sort((a,b)=>b[0]>a[0]?1:-1);
+    ssel.innerHTML='<option value="">Todas las semanas</option>'+semanas.map(([k,l])=>`<option value="${k}" ${k===cur?'selected':''}>${l}</option>`).join('');
+  }
   // Modelos activas
   const ms=document.getElementById('sol-filter-modelo');
   if(ms){
@@ -1773,8 +1802,12 @@ function renderSolicitudes(){
   fillSolFilters();
   let all=SC.solicitudes||[];
   if(solF!=='todas')all=all.filter(s=>s.estado===solF);
+  const fMes=document.getElementById('sol-filter-mes')?.value||'';
+  const fSem=document.getElementById('sol-filter-semana')?.value||'';
   const fMdl=document.getElementById('sol-filter-modelo')?.value||'';
   const fTipo=document.getElementById('sol-filter-tipo')?.value||'';
+  if(fMes)all=all.filter(s=>s.fecha?.startsWith(fMes));
+  if(fSem)all=all.filter(s=>s.fecha&&getWeekKey(s.fecha)===fSem);
   if(fMdl)all=all.filter(s=>s.modelo_id===fMdl);
   if(fTipo)all=all.filter(s=>s.tipo===fTipo);
 
