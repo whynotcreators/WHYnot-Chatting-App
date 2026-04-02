@@ -310,7 +310,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
   <div class="sbar"><input class="sinp" id="q-mdl" placeholder="Buscar modelo..." oninput="renderModelos()"/></div>
   <div class="card">
-    <table class="tbl"><thead><tr><th>Nombre</th><th>Team</th><th>Chatter</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Team</th><th>Chatters</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
     <tbody id="tbody-mdl"></tbody></table>
   </div>
 </div>
@@ -544,10 +544,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Nombre de la modelo</label><input class="fi" id="m-mdl-nombre" placeholder="Nombre de la modelo"/></div>
       <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est"><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select></div>
     </div>
-    <div class="fr2">
-      <div class="fg"><label>Team</label><select class="fs" id="m-mdl-team" onchange="updMdlChtsByTeam()"></select></div>
-      <div class="fg"><label>Chatter asignado</label><select class="fs" id="m-mdl-cht"></select></div>
-    </div>
+    <div class="fg"><label>Team</label><select class="fs" id="m-mdl-team"></select></div>
     <div class="fg"><label>Notas</label><textarea class="fta" id="m-mdl-notas" placeholder="Notas adicionales..."></textarea></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-mdl')">Cancelar</button><button class="btn btn-primary" onclick="saveModelo()">Guardar</button></div>
   </div>
@@ -746,7 +743,7 @@ function fillTeamSelects(){
   if(chtEq){const cur=chtEq.value;chtEq.innerHTML='<option value="">Seleccionar equipo...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
   // Modelo team select
   const mdlTeam=document.getElementById('m-mdl-team');
-  if(mdlTeam){const cur=mdlTeam.value;mdlTeam.innerHTML='<option value="">Todos los teams</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');updMdlChtsByTeam();}
+  if(mdlTeam){const cur=mdlTeam.value;mdlTeam.innerHTML='<option value="">Seleccionar team...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
 }
 function fillPerfMes(){
   const sel=document.getElementById('perf-mes');if(!sel)return;
@@ -962,14 +959,7 @@ async function delTeam(id){
   await save();renderTeams();fillTeamSelects();toast('Team eliminado');
 }
 
-// Modelo — filtrar chatters por team
-function updMdlChtsByTeam(){
-  const team=gv('m-mdl-team');
-  const chts=(SC.chatters||[]).filter(c=>!team||c.equipo===team);
-  const sel=document.getElementById('m-mdl-cht');if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">Sin asignar</option>'+chts.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.nombre}</option>`).join('');
-}
+
 
 // CHATTERS
 function prepCht(){sv('m-cht-ttl','Nuevo chatter');['m-cht-id','m-cht-nombre','m-cht-banco','m-cht-wallet'].forEach(id=>sv(id,''));sv('m-cht-estado','activo');sv('m-cht-turno','00-06');fillTeamSelects();}
@@ -1002,11 +992,11 @@ function renderChatters(){
 async function delChatter(id){if(!confirm('¿Eliminar?'))return;SC.chatters=(SC.chatters||[]).filter(x=>x.id!==id);await save();renderChatters();renderDash();toast('Eliminado');}
 
 // MODELOS
-function prepMdl(){sv('m-mdl-ttl','Nueva modelo');['m-mdl-id','m-mdl-nombre','m-mdl-notas'].forEach(id=>sv(id,''));sv('m-mdl-est','activa');fillTeamSelects();sv('m-mdl-team','');updMdlChtsByTeam();}
-function editModelo(id){const m=(SC.modelos||[]).find(x=>x.id===id);if(!m)return;sv('m-mdl-ttl','Editar modelo');sv('m-mdl-id',id);sv('m-mdl-nombre',m.nombre);sv('m-mdl-est',m.estado||'activa');sv('m-mdl-notas',m.notas||'');const cht=(SC.chatters||[]).find(c=>c.id===m.chatter);fillTeamSelects();sv('m-mdl-team',cht?.equipo||'');updMdlChtsByTeam();sv('m-mdl-cht',m.chatter||'');document.getElementById('m-mdl').classList.add('open');}
+function prepMdl(){sv('m-mdl-ttl','Nueva modelo');['m-mdl-id','m-mdl-nombre','m-mdl-notas'].forEach(id=>sv(id,''));sv('m-mdl-est','activa');fillTeamSelects();sv('m-mdl-team','');}
+function editModelo(id){const m=(SC.modelos||[]).find(x=>x.id===id);if(!m)return;sv('m-mdl-ttl','Editar modelo');sv('m-mdl-id',id);sv('m-mdl-nombre',m.nombre);sv('m-mdl-est',m.estado||'activa');sv('m-mdl-notas',m.notas||'');fillTeamSelects();sv('m-mdl-team',m.team||'');document.getElementById('m-mdl').classList.add('open');}
 async function saveModelo(){
   const id=gv('m-mdl-id');
-  const obj={id:id||uid(),nombre:gv('m-mdl-nombre'),chatter:gv('m-mdl-cht'),team:gv('m-mdl-team'),estado:gv('m-mdl-est'),notas:gv('m-mdl-notas')};
+  const obj={id:id||uid(),nombre:gv('m-mdl-nombre'),team:gv('m-mdl-team'),estado:gv('m-mdl-est'),notas:gv('m-mdl-notas')};
   if(!obj.nombre){toast('Ingresá el nombre','err');return;}
   ensureArr('modelos');SC.modelos=id?SC.modelos.map(x=>x.id===id?obj:x):[...SC.modelos,obj];
   await save();renderModelos();renderDash();closeModal('m-mdl');toast('Modelo guardada');
@@ -1016,9 +1006,9 @@ function renderModelos(){
   const all=(SC.modelos||[]).filter(m=>!q||m.nombre.toLowerCase().includes(q));
   const tb=document.getElementById('tbody-mdl');
   if(!all.length){tb.innerHTML=emptyRow(6,'⭐','Sin modelos registradas');return;}
-  tb.innerHTML=all.map(m=>{const ch=(SC.chatters||[]).find(c=>c.id===m.chatter);const tm=(SC.teams||[]).find(t=>t.id===m.team||t.id===ch?.equipo);return`<tr>
+  tb.innerHTML=all.map(m=>{const tm=(SC.teams||[]).find(t=>t.id===m.team);const teamChts=(SC.chatters||[]).filter(c=>c.equipo===m.team);return`<tr>
     <td><strong>${m.nombre}</strong></td><td>${tm?`<span class="badge bg-purple">${tm.nombre}</span>`:'—'}</td>
-    <td>${ch?`<span class="badge bg-purple">${ch.nombre}</span>`:'—'}</td>
+    <td style="font-size:12px;color:var(--text2)">${teamChts.length?teamChts.map(c=>c.nombre).join(', '):'—'}</td>
     <td>${m.estado==='activa'?'<span class="badge bg-green">Activa</span>':'<span class="badge bg-red">Inactiva</span>'}</td>
     <td style="font-size:12px;color:var(--text2);max-width:180px">${m.notas||'—'}</td>
     <td><button class="bti" onclick="editModelo('${m.id}')">✏️</button><button class="bti" onclick="delModelo('${m.id}')">🗑️</button></td>
