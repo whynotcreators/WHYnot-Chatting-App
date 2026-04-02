@@ -444,6 +444,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <select class="fs" id="perf-nicho" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los nichos</option></select>
     <select class="fs" id="perf-modelo" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todas las modelos</option></select>
   </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+    <span style="font-size:12px;color:var(--text3)">Ordenar por:</span>
+    <select class="fs" id="perf-sort" onchange="renderPerf()" style="width:auto;padding:7px 12px;font-size:13px">
+      <option value="fac_desc">Mayor facturación</option>
+      <option value="fac_asc">Menor facturación</option>
+      <option value="hrs_desc">Más horas trabajadas</option>
+      <option value="hrs_asc">Menos horas trabajadas</option>
+      <option value="profit_desc">Mayor profit</option>
+      <option value="profit_asc">Menor profit</option>
+      <option value="margen_desc">Mayor margen</option>
+    </select>
+  </div>
   <div class="krow k4" id="perf-kpis"></div>
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr">
@@ -1558,6 +1570,7 @@ function fillPerfFilters(){
 }
 function renderPerf(){
   fillPerfFilters();
+  const sortBy=document.getElementById('perf-sort')?.value||'fac_desc';
   const team=gv('perf-team')||'all';
   const mes=gv('perf-mes')||thisMonth();
   const q=gv('perf-q')||'all';
@@ -1623,9 +1636,21 @@ function renderPerf(){
     <div class="kcard"><div class="lbl">Margen</div><div class="val" style="color:${parseFloat(tm)>=50?'var(--green)':parseFloat(tm)>=30?'var(--amber)':'var(--red)'}">${tm}%</div></div>`;
 
   // Tabla chatters
+  // Ordenar rows
+  const sortFn=(a,b)=>{
+    if(sortBy==='fac_desc')return b.fac-a.fac;
+    if(sortBy==='fac_asc')return a.fac-b.fac;
+    if(sortBy==='hrs_desc')return b.hrs-a.hrs;
+    if(sortBy==='hrs_asc')return a.hrs-b.hrs;
+    if(sortBy==='profit_desc')return b.profit-a.profit;
+    if(sortBy==='profit_asc')return a.profit-b.profit;
+    if(sortBy==='margen_desc')return parseFloat(b.margen||0)-parseFloat(a.margen||0);
+    return 0;
+  };
+  const rowsSorted=[...rows].sort(sortFn);
   const tb=document.getElementById('tbody-perf');
-  if(!rows.length){tb.innerHTML=emptyRow(12,'📊','Sin datos');return;}
-  tb.innerHTML=rows.map(r=>{const tNm=getTeamNm(r.c.equipo);return`<tr>
+  if(!rowsSorted.length){tb.innerHTML=emptyRow(13,'📊','Sin datos');return;}
+  tb.innerHTML=rowsSorted.map(r=>{const tNm=getTeamNm(r.c.equipo);return`<tr>
     <td><strong>${r.c.nombre}</strong></td>
     <td><span class="badge bg-purple">${tNm}</span></td>
     <td><span class="badge bg-blue">${r.c.turno||'—'}</span></td>
@@ -1641,27 +1666,30 @@ function renderPerf(){
   // Tabla equipos
   const eqs=[...new Set((SC.chatters||[]).map(c=>c.equipo).filter(Boolean))];
   const te=document.getElementById('tbody-perf-eq');
-  if(!teamsToShow.length){te.innerHTML=emptyRow(8,'🏷️','Sin equipos');return;}
-  // Equipos: usar IDs de teams reales
-  const teamIds=[...new Set((SC.chatters||[]).map(c=>c.equipo).filter(Boolean))];
-  const teamsToShow=team==='all'?(SC.teams||[]).filter(t=>teamIds.includes(t.id)):[(SC.teams||[]).find(t=>t.id===team)].filter(Boolean);
+  
+    // Equipos
+  const allTeamIds=[...new Set((SC.chatters||[]).map(c=>c.equipo).filter(Boolean))];
+  const teamsToShow=team==='all'?(SC.teams||[]).filter(t=>allTeamIds.includes(t.id)):[(SC.teams||[]).find(t=>t.id===team)].filter(Boolean);
+  if(!teamsToShow.length){te.innerHTML=emptyRow(8,'🏷️','Sin equipos con datos');return;}
+  const {pph:ePPH}=getCfg();
   te.innerHTML=teamsToShow.map(tObj=>{
     const eq=tObj.id;
     const ec=(SC.chatters||[]).filter(c=>c.equipo===eq);
     const em=(SC.modelos||[]).filter(m=>m.team===eq&&m.estado==='activa');
-    const ei=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
-    const ef=ei.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
-    const eqIngsAll=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
-    const eh=eqIngsAll.reduce((a,i)=>a+(parseFloat(i.horas)||0),0);
-    const {pph:ePPH,comNormal:eComN}=getCfg();
-    const ec2=ef*(eComN/100)+eh*ePPH;const ep=ef-ec2;
-    const em2=ef>0?((ep/ef)*100).toFixed(1):'—';
+    const eqIngs=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
+    const eh=eqIngs.reduce((a,i)=>a+(parseFloat(i.horas)||0),0);
+    const ef=eqIngs.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
+    const eComN=eqIngs.reduce((a,i)=>a+(parseFloat(i.comision_normal)||0),0);
+    const eComL=eqIngs.reduce((a,i)=>a+(parseFloat(i.lunes_comision)||0),0);
+    const eCosto=(eComN+eComL)+(eh*ePPH);
+    const eProfit=ef-eCosto;
+    const eMargen=ef>0?((eProfit/ef)*100).toFixed(1):'—';
     return`<tr>
       <td><span class="badge bg-purple">${tObj.nombre}</span></td>
       <td>${ec.length}</td><td>${em.length}</td><td>${eh}h</td>
-      <td>${fMon(ef)}</td><td>${fMon(ec2)}</td>
-      <td style="color:${ep>=0?'var(--green)':'var(--red)'}">${fMon(ep)}</td>
-      <td style="color:${parseFloat(em2)>=50?'var(--green)':parseFloat(em2)>=30?'var(--amber)':'var(--red)'}">${em2}${em2!=='—'?'%':''}</td>
+      <td>${fMon(ef)}</td><td>${fMon(eCosto)}</td>
+      <td style="color:${eProfit>=0?'var(--green)':'var(--red)'}">${fMon(eProfit)}</td>
+      <td style="color:${parseFloat(eMargen)>=50?'var(--green)':parseFloat(eMargen)>=30?'var(--amber)':'var(--red)'}">${eMargen}${eMargen!=='—'?'%':''}</td>
     </tr>`;
   }).join('');
 }
