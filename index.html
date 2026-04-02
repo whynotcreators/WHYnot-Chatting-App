@@ -444,6 +444,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="stab active" onclick="goStab('usuarios','lista',this)">Lista</div>
       <div class="stab" id="stab-tipos" onclick="goStab('usuarios','tipos',this)" style="display:none">Tipos de contenido</div>
       <div class="stab" id="stab-nichos" onclick="goStab('usuarios','nichos',this)" style="display:none">Nichos</div>
+      <div class="stab" id="stab-config" onclick="goStab('usuarios','config',this)" style="display:none">Configuración</div>
       <div class="stab" onclick="goStab('usuarios','nuevo',this)">+ Nuevo usuario</div>
     </div>
     <div class="stab-content active" id="usuarios-lista">
@@ -465,6 +466,36 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <button class="btn btn-primary btn-sm" onclick="addNicho()">+ Agregar</button>
       </div>
       <div id="nichos-list"></div>
+    </div>
+    <div class="stab-content" id="usuarios-config">
+      <div style="max-width:420px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:20px">Valores globales usados en los cálculos de ingresos y rendimiento.</div>
+        <div class="fg">
+          <label>PPH — Pago por hora ($)</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="fi" type="number" id="cfg-pph" placeholder="2" min="0" step="0.5" style="max-width:120px"/>
+            <span style="font-size:12px;color:var(--text3)">USD por hora trabajada</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Comisión días normales (%)</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="fi" type="number" id="cfg-com-normal" placeholder="5" min="0" max="100" style="max-width:120px"/>
+            <span style="font-size:12px;color:var(--text3)">% sobre lo facturado</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Comisión lunes (%)</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="fi" type="number" id="cfg-com-lunes" placeholder="8" min="0" max="100" style="max-width:120px"/>
+            <span style="font-size:12px;color:var(--text3)">% sobre lo facturado los lunes</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()">Guardar configuración</button>
+        <div style="margin-top:16px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-sm);font-size:12px;color:var(--text3)">
+          Valores actuales: <strong id="cfg-display">PPH $2/h · Normal 5% · Lunes 8%</strong>
+        </div>
+      </div>
     </div>
     <div class="stab-content" id="usuarios-nuevo">
       <div style="max-width:440px">
@@ -715,7 +746,7 @@ async function init(){
     document.getElementById('sb-av').textContent=(CU.nombre||CU.usuario)[0].toUpperCase();
     document.getElementById('sb-rl').textContent=rolNm(CU.rol);
     if(CU.rol==='admin'||CU.rol==='tl'){document.getElementById('sb-admin').style.display='';}
-    if(CU.rol==='admin'){document.getElementById('stab-tipos').style.display='';document.getElementById('stab-nichos').style.display='';}
+    if(CU.rol==='admin'){document.getElementById('stab-tipos').style.display='';document.getElementById('stab-nichos').style.display='';document.getElementById('stab-config').style.display='';}
     fillPerfMes();fillTeamSelects();renderAll();
   }catch(e){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px"><div style="color:#e24b4a;font-size:16px">Error de conexión</div><div style="color:#666;font-size:13px">'+e.message+'</div></div>';}
 }
@@ -731,6 +762,7 @@ function goSec(sec,el){
   if(sec==='teams')renderTeams();
 }
 function goStab(section,tab,el){
+  if(tab==='config')loadConfig();
   const wrap=document.getElementById('page-'+section);
   wrap.querySelectorAll('.stab-content').forEach(t=>t.classList.remove('active'));
   wrap.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
@@ -807,7 +839,15 @@ function fillPerfMes(){
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
 function getTeamNm(id){return(SC.teams||[]).find(t=>t.id===id)?.nombre||id||'—';}
-function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
+function getCfg(){
+  const cfg=SC.config||{};
+  return {
+    pph: parseFloat(cfg.pph)||2,
+    comNormal: parseFloat(cfg.com_normal)||5,
+    comLunes: parseFloat(cfg.com_lunes)||8
+  };
+}
+function renderAll(){loadConfig();renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();}
 
 // DASHBOARD
 function renderDash(){
@@ -993,11 +1033,12 @@ function updIngCalc(){
     if(document.getElementById('ing-lunes-com-'+i))document.getElementById('ing-lunes-com-'+i).textContent=fMon(v*0.08);
     lunesMonto+=v;
   }
-  const lunesCom=lunesMonto*0.08;
-  const normalCom=(totalMdls-lunesMonto)*0.05;
+  const lunesCom=lunesMonto*(cfgComL/100);
+  const normalCom=(totalMdls-lunesMonto)*(cfgComN/100);
   const totalCom=normalCom+lunesCom;
   const total=totalMdls;
-  const costoH=hrs*PPH;
+  const {pph:cfgPPH,comNormal:cfgComN,comLunes:cfgComL}=getCfg();
+  const costoH=hrs*cfgPPH;
   const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':mods.length>0?'— (cargá hrs)':'—';
   document.getElementById('ing-calc-total').textContent=fMon(total);
   document.getElementById('ing-calc-com').textContent=fMon(normalCom);
@@ -1018,11 +1059,12 @@ async function saveIngreso(){
   const lunesDetalle=[];
   let lunesMonto2=0;
   for(let i=0;i<nLunes2;i++){const v=parseFloat(document.getElementById('ing-lunes-'+i)?.value||0);lunesDetalle.push(v);lunesMonto2+=v;}
-  const lunesCom2=lunesMonto2*0.08;
-  const normalCom2=(total-lunesMonto2)*0.05;
+  const {pph:sPPH,comNormal:sComN,comLunes:sComL}=getCfg();
+  const lunesCom2=lunesMonto2*(sComL/100);
+  const normalCom2=(total-lunesMonto2)*(sComN/100);
   const totalCom2=normalCom2+lunesCom2;
   const tpmCalc=mods.length>0&&hrs>0?(hrs/mods.length):0;
-  const obj={id:id||uid(),fecha,quincena:gv('m-ing-q'),chatter_id:cid,chatter_nombre:cht?.nombre||'',equipo:cht?.equipo||'',horas:hrs,facturacion:fac,total_facturado:total,lunes:nLunes2>0,lunes_cantidad:nLunes2,lunes_detalle:lunesDetalle,lunes_monto:lunesMonto2,lunes_comision:lunesCom2,comision:totalCom2,comision_normal:normalCom2,costo_horas:hrs*PPH,tpm:tpmCalc};
+  const obj={id:id||uid(),fecha,quincena:gv('m-ing-q'),chatter_id:cid,chatter_nombre:cht?.nombre||'',equipo:cht?.equipo||'',horas:hrs,facturacion:fac,total_facturado:total,lunes:nLunes2>0,lunes_cantidad:nLunes2,lunes_detalle:lunesDetalle,lunes_monto:lunesMonto2,lunes_comision:lunesCom2,comision:totalCom2,comision_normal:normalCom2,costo_horas:hrs*sPPH,tpm:tpmCalc};
   ensureArr('ingresos');
   SC.ingresos=id?SC.ingresos.map(x=>x.id===id?obj:x):[...SC.ingresos,obj];
   await save();renderIngresos();renderDash();closeModal('m-ing');toast('Ingreso guardado');
@@ -1151,7 +1193,7 @@ function renderChatters(){
       <td><span class="badge bg-purple">${getTeamNm(c.equipo)}</span></td>
       <td><span class="badge bg-blue">${c.turno||'—'}</span></td>
       <td style="font-size:12px;color:var(--text2);max-width:200px">${mods.length?mods.map(m=>`<span class="badge bg-cyan" style="margin:1px">${m.nombre}</span>`).join(' '):'—'}</td>
-      <td>5%</td><td>$${PPH}/h</td>
+      <td>${getCfg().comNormal}%</td><td>$${getCfg().pph}/h</td>
       <td>${c.estado==='activo'?'<span class="badge bg-green">Activo</span>':'<span class="badge bg-red">Inactivo</span>'}</td>
       <td><button class="bti" onclick="editChatter('${c.id}')">✏️</button><button class="bti" onclick="delChatter('${c.id}')">🗑️</button></td>
     </tr>`;
@@ -1292,7 +1334,7 @@ function renderPerf(){
     const ings=(SC.ingresos||[]).filter(i=>i.chatter_id===c.id&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
     const hrs=(SC.horas_quincena[hkey]||{})[c.id]||0;
     const fac=ings.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
-    const com=fac*0.05;const costoH=hrs*PPH;const costo=com+costoH;
+    const com=fac*0.05;const {pph:ePPH2}=getCfg();const costoH=hrs*ePPH2;const costo=com+costoH;
     const profit=fac-costo;
     const margen=fac>0?((profit/fac)*100).toFixed(1):'—';
     const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':'—';
@@ -1342,7 +1384,8 @@ function renderPerf(){
     const ef=ei.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
     const eqIngsAll=(SC.ingresos||[]).filter(i=>i.equipo===eq&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
     const eh=eqIngsAll.reduce((a,i)=>a+(parseFloat(i.horas)||0),0);
-    const ec2=ef*0.05+eh*PPH;const ep=ef-ec2;
+    const {pph:ePPH,comNormal:eComN}=getCfg();
+    const ec2=ef*(eComN/100)+eh*ePPH;const ep=ef-ec2;
     const em2=ef>0?((ep/ef)*100).toFixed(1):'—';
     return`<tr>
       <td><span class="badge bg-purple">${tObj.nombre}</span></td>
@@ -1442,6 +1485,24 @@ async function crearUsr(){const n=gv('nu-nombre'),u=gv('nu-usuario'),p=gv('nu-pa
 async function delUsr(id){if(!confirm('¿Eliminar?'))return;SC.usuarios=(SC.usuarios||[]).filter(x=>x.id!==id);await save();renderUsuarios();toast('Eliminado');}
 
 // TIPOS CONTENIDO
+function loadConfig(){
+  const cfg=SC.config||{};
+  const el_pph=document.getElementById('cfg-pph');
+  const el_n=document.getElementById('cfg-com-normal');
+  const el_l=document.getElementById('cfg-com-lunes');
+  if(el_pph)el_pph.value=cfg.pph||2;
+  if(el_n)el_n.value=cfg.com_normal||5;
+  if(el_l)el_l.value=cfg.com_lunes||8;
+  const disp=document.getElementById('cfg-display');
+  if(disp)disp.textContent=`PPH $${cfg.pph||2}/h · Normal ${cfg.com_normal||5}% · Lunes ${cfg.com_lunes||8}%`;
+}
+async function saveConfig(){
+  if(!SC.config)SC.config={};
+  SC.config.pph=parseFloat(document.getElementById('cfg-pph')?.value)||2;
+  SC.config.com_normal=parseFloat(document.getElementById('cfg-com-normal')?.value)||5;
+  SC.config.com_lunes=parseFloat(document.getElementById('cfg-com-lunes')?.value)||8;
+  await save();loadConfig();toast('Configuración guardada ✓');
+}
 function renderNichos(){
   const nichos=SC.nichos?.length?SC.nichos:NICHOS_DEF;
   const c=document.getElementById('nichos-list');if(!c)return;
