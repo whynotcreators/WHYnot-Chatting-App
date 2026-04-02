@@ -147,6 +147,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
   <div class="sb-sep"></div>
   <div class="sb-grp">Gestión</div>
+  <div class="sb-item" onclick="goSec('teams',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    Teams
+  </div>
   <div class="sb-item" onclick="goSec('chatters',this)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Chatters
@@ -270,6 +274,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="card-hdr"><div class="card-ttl">Historial</div></div>
     <table class="tbl"><thead><tr><th>Fecha</th><th>Persona / Concepto</th><th>Monto</th><th>Descripción</th><th></th></tr></thead>
     <tbody id="tbody-egr"></tbody></table>
+  </div>
+</div>
+
+<!-- TEAMS -->
+<div class="page" id="page-teams">
+  <div class="ph">
+    <div class="ph-l"><div class="pt">Teams</div><div class="ps">Equipos de chatters</div></div>
+    <button class="btn btn-primary" onclick="openModal('m-team')">+ Nuevo team</button>
+  </div>
+  <div class="card">
+    <table class="tbl"><thead><tr><th>Código</th><th>Nombre</th><th>Chatters asignados</th><th>Modelos totales</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tbody-teams"></tbody></table>
   </div>
 </div>
 
@@ -490,13 +506,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<div class="mbg" id="m-team">
+  <div class="modal">
+    <div class="mhdr"><div class="mttl" id="m-team-ttl">Nuevo team</div><button class="mx" onclick="closeModal('m-team')">×</button></div>
+    <input type="hidden" id="m-team-id"/>
+    <div class="fr2">
+      <div class="fg"><label>Código</label><input class="fi" id="m-team-codigo" placeholder="ej: WC-00"/></div>
+      <div class="fg"><label>Nombre</label><input class="fi" id="m-team-nombre" placeholder="ej: Equipo noche"/></div>
+    </div>
+    <div class="fg"><label>Estado</label><select class="fs" id="m-team-estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
+    <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-team')">Cancelar</button><button class="btn btn-primary" onclick="saveTeam()">Guardar</button></div>
+  </div>
+</div>
+
 <div class="mbg" id="m-cht">
   <div class="modal">
     <div class="mhdr"><div class="mttl" id="m-cht-ttl">Nuevo chatter</div><button class="mx" onclick="closeModal('m-cht')">×</button></div>
     <input type="hidden" id="m-cht-id"/>
     <div class="fr2">
       <div class="fg"><label>Nombre</label><input class="fi" id="m-cht-nombre" placeholder="Nombre del chatter"/></div>
-      <div class="fg"><label>Equipo</label><input class="fi" id="m-cht-equipo" placeholder="ej: WC-00"/></div>
+      <div class="fg"><label>Equipo</label><select class="fs" id="m-cht-equipo"></select></div>
     </div>
     <div class="fr2">
       <div class="fg"><label>Turno</label><select class="fs" id="m-cht-turno"><option value="00-06">00:00 - 06:00</option><option value="06-12">06:00 - 12:00</option><option value="12-18">12:00 - 18:00</option><option value="18-00">18:00 - 00:00</option></select></div>
@@ -519,9 +548,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Plataforma</label><select class="fs" id="m-mdl-plat"><option>OnlyFans</option><option>Fansly</option><option>BentBox</option><option>Otra</option></select></div>
     </div>
     <div class="fr2">
+      <div class="fg"><label>Team</label><select class="fs" id="m-mdl-team" onchange="updMdlChtsByTeam()"></select></div>
       <div class="fg"><label>Chatter asignado</label><select class="fs" id="m-mdl-cht"></select></div>
-      <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est"><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select></div>
     </div>
+    <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est"><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select></div>
     <div class="fg"><label>Notas</label><textarea class="fta" id="m-mdl-notas" placeholder="Notas adicionales..."></textarea></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-mdl')">Cancelar</button><button class="btn btn-primary" onclick="saveModelo()">Guardar</button></div>
   </div>
@@ -663,6 +693,7 @@ function goSec(sec,el){
   if(el)el.classList.add('active');
   if(sec==='rendimiento')renderPerf();
   if(sec==='dashboard')renderDash();
+  if(sec==='teams')renderTeams();
 }
 function goStab(section,tab,el){
   const wrap=document.getElementById('page-'+section);
@@ -674,7 +705,8 @@ function goStab(section,tab,el){
 
 // MODAL — clean, no recursion
 function openModal(id){
-  if(id==='m-ing')prepIng();
+  if(id==='m-team')prepTeam();
+  else if(id==='m-ing')prepIng();
   else if(id==='m-egr')prepEgr();
   else if(id==='m-cht')prepCht();
   else if(id==='m-mdl')prepMdl();
@@ -705,20 +737,27 @@ function ensureArr(k){if(!SC[k])SC[k]=[];}
 async function save(){try{await sbSave();}catch(e){toast('Error al guardar','err');}}
 function fillSel(id,opts,ph='',sel=''){const el=document.getElementById(id);if(!el)return;el.innerHTML=`<option value="">${ph}</option>`+opts.map(o=>`<option value="${o.v}" ${o.v===sel?'selected':''}>${o.l}</option>`).join('');}
 function fillTeamSelects(){
-  const eqs=[...new Set((SC.chatters||[]).map(c=>c.equipo).filter(Boolean))].sort();
-  const opts=eqs.map(e=>({v:e,l:e}));
+  const teams=(SC.teams||[]).filter(t=>t.estado!=='inactivo');
+  const eqOpts=teams.map(t=>({v:t.codigo,l:t.codigo+(t.nombre?' — '+t.nombre:'')}));
+  // Dashboard y rendimiento
   ['dash-team','perf-team'].forEach(sid=>{
     const sel=document.getElementById(sid);if(!sel)return;
     const cur=sel.value;
-    sel.innerHTML='<option value="all">Todos los equipos</option>'+opts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');
+    sel.innerHTML='<option value="all">Todos los equipos</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');
   });
+  // Chatter equipo select
+  const chtEq=document.getElementById('m-cht-equipo');
+  if(chtEq){const cur=chtEq.value;chtEq.innerHTML='<option value="">Seleccionar equipo...</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');}
+  // Modelo team select
+  const mdlTeam=document.getElementById('m-mdl-team');
+  if(mdlTeam){const cur=mdlTeam.value;mdlTeam.innerHTML='<option value="">Todos los teams</option>'+eqOpts.map(o=>`<option value="${o.v}" ${o.v===cur?'selected':''}>${o.l}</option>`).join('');updMdlChtsByTeam();}
 }
 function fillPerfMes(){
   const sel=document.getElementById('perf-mes');if(!sel)return;
   const cur=new Date();
   sel.innerHTML=MESES.map((m,i)=>`<option value="${cur.getFullYear()+'-'+String(i+1).padStart(2,'0')}" ${i===cur.getMonth()?'selected':''}>${m} ${cur.getFullYear()}</option>`).join('');
 }
-function renderAll(){renderDash();renderIngresos();renderEgresos();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();updateBadgeSol();fillTeamSelects();}
+function renderAll(){renderDash();renderIngresos();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();updateBadgeSol();fillTeamSelects();}
 
 // DASHBOARD
 function renderDash(){
@@ -894,9 +933,52 @@ function renderEgresos(){
 }
 async function delEgreso(id){if(!confirm('¿Eliminar?'))return;SC.egresos=(SC.egresos||[]).filter(x=>x.id!==id);await save();renderEgresos();renderDash();toast('Eliminado');}
 
+// TEAMS
+function prepTeam(){sv('m-team-ttl','Nuevo team');['m-team-id','m-team-codigo','m-team-nombre'].forEach(id=>sv(id,''));sv('m-team-estado','activo');}
+function editTeam(id){const t=(SC.teams||[]).find(x=>x.id===id);if(!t)return;sv('m-team-ttl','Editar team');sv('m-team-id',id);sv('m-team-codigo',t.codigo);sv('m-team-nombre',t.nombre||'');sv('m-team-estado',t.estado||'activo');document.getElementById('m-team').classList.add('open');}
+async function saveTeam(){
+  const id=gv('m-team-id');
+  const obj={id:id||uid(),codigo:gv('m-team-codigo').toUpperCase(),nombre:gv('m-team-nombre'),estado:gv('m-team-estado')};
+  if(!obj.codigo){toast('Ingresá el código del team','err');return;}
+  ensureArr('teams');
+  SC.teams=id?SC.teams.map(x=>x.id===id?obj:x):[...SC.teams,obj];
+  await save();renderTeams();fillTeamSelects();closeModal('m-team');toast('Team guardado');
+}
+function renderTeams(){
+  ensureArr('teams');
+  const tb=document.getElementById('tbody-teams');if(!tb)return;
+  if(!SC.teams.length){tb.innerHTML=emptyRow(6,'🏷️','Sin teams creados. Creá uno para poder agregar chatters.');return;}
+  tb.innerHTML=SC.teams.map(t=>{
+    const chts=(SC.chatters||[]).filter(c=>c.equipo===t.codigo);
+    const mdls=(SC.modelos||[]).filter(m=>chts.some(c=>c.id===m.chatter));
+    return`<tr>
+      <td><span class="badge bg-purple">${t.codigo}</span></td>
+      <td><strong>${t.nombre||'—'}</strong></td>
+      <td>${chts.length} chatter${chts.length!==1?'s':''}</td>
+      <td>${mdls.length} modelo${mdls.length!==1?'s':''}</td>
+      <td>${t.estado==='activo'?'<span class="badge bg-green">Activo</span>':'<span class="badge bg-red">Inactivo</span>'}</td>
+      <td><button class="bti" onclick="editTeam('${t.id}')">✏️</button><button class="bti" onclick="delTeam('${t.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+async function delTeam(id){
+  if(!confirm('¿Eliminar este team? Los chatters asignados quedarán sin equipo.'))return;
+  SC.teams=(SC.teams||[]).filter(x=>x.id!==id);
+  await save();renderTeams();fillTeamSelects();toast('Team eliminado');
+}
+
+// Modelo — filtrar chatters por team
+function updMdlChtsByTeam(){
+  const team=gv('m-mdl-team');
+  const chts=(SC.chatters||[]).filter(c=>!team||c.equipo===team);
+  const sel=document.getElementById('m-mdl-cht');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Sin asignar</option>'+chts.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.nombre}</option>`).join('');
+}
+
 // CHATTERS
-function prepCht(){sv('m-cht-ttl','Nuevo chatter');['m-cht-id','m-cht-nombre','m-cht-equipo','m-cht-banco','m-cht-wallet'].forEach(id=>sv(id,''));sv('m-cht-estado','activo');sv('m-cht-turno','00-06');}
-function editChatter(id){const c=(SC.chatters||[]).find(x=>x.id===id);if(!c)return;sv('m-cht-ttl','Editar chatter');sv('m-cht-id',id);sv('m-cht-nombre',c.nombre);sv('m-cht-equipo',c.equipo||'');sv('m-cht-turno',c.turno||'00-06');sv('m-cht-estado',c.estado||'activo');sv('m-cht-banco',c.banco||'');sv('m-cht-wallet',c.wallet||'');document.getElementById('m-cht').classList.add('open');}
+function prepCht(){sv('m-cht-ttl','Nuevo chatter');['m-cht-id','m-cht-nombre','m-cht-banco','m-cht-wallet'].forEach(id=>sv(id,''));sv('m-cht-estado','activo');sv('m-cht-turno','00-06');fillTeamSelects();}
+function editChatter(id){const c=(SC.chatters||[]).find(x=>x.id===id);if(!c)return;sv('m-cht-ttl','Editar chatter');sv('m-cht-id',id);sv('m-cht-nombre',c.nombre);sv('m-cht-turno',c.turno||'00-06');sv('m-cht-estado',c.estado||'activo');sv('m-cht-banco',c.banco||'');sv('m-cht-wallet',c.wallet||'');fillTeamSelects();sv('m-cht-equipo',c.equipo||'');document.getElementById('m-cht').classList.add('open');}
 async function saveChatter(){
   const id=gv('m-cht-id');
   const obj={id:id||uid(),nombre:gv('m-cht-nombre'),equipo:gv('m-cht-equipo'),turno:gv('m-cht-turno'),estado:gv('m-cht-estado'),banco:gv('m-cht-banco'),wallet:gv('m-cht-wallet')};
@@ -925,8 +1007,8 @@ function renderChatters(){
 async function delChatter(id){if(!confirm('¿Eliminar?'))return;SC.chatters=(SC.chatters||[]).filter(x=>x.id!==id);await save();renderChatters();renderDash();toast('Eliminado');}
 
 // MODELOS
-function prepMdl(){sv('m-mdl-ttl','Nueva modelo');['m-mdl-id','m-mdl-nombre','m-mdl-notas'].forEach(id=>sv(id,''));sv('m-mdl-est','activa');fillSel('m-mdl-cht',(SC.chatters||[]).map(c=>({v:c.id,l:c.nombre})),'Sin asignar');}
-function editModelo(id){const m=(SC.modelos||[]).find(x=>x.id===id);if(!m)return;sv('m-mdl-ttl','Editar modelo');sv('m-mdl-id',id);sv('m-mdl-nombre',m.nombre);sv('m-mdl-plat',m.plataforma||'OnlyFans');sv('m-mdl-est',m.estado||'activa');sv('m-mdl-notas',m.notas||'');fillSel('m-mdl-cht',(SC.chatters||[]).map(c=>({v:c.id,l:c.nombre})),'Sin asignar',m.chatter);document.getElementById('m-mdl').classList.add('open');}
+function prepMdl(){sv('m-mdl-ttl','Nueva modelo');['m-mdl-id','m-mdl-nombre','m-mdl-notas'].forEach(id=>sv(id,''));sv('m-mdl-est','activa');fillTeamSelects();sv('m-mdl-team','');updMdlChtsByTeam();}
+function editModelo(id){const m=(SC.modelos||[]).find(x=>x.id===id);if(!m)return;sv('m-mdl-ttl','Editar modelo');sv('m-mdl-id',id);sv('m-mdl-nombre',m.nombre);sv('m-mdl-plat',m.plataforma||'OnlyFans');sv('m-mdl-est',m.estado||'activa');sv('m-mdl-notas',m.notas||'');const cht=(SC.chatters||[]).find(c=>c.id===m.chatter);fillTeamSelects();sv('m-mdl-team',cht?.equipo||'');updMdlChtsByTeam();sv('m-mdl-cht',m.chatter||'');document.getElementById('m-mdl').classList.add('open');}
 async function saveModelo(){
   const id=gv('m-mdl-id');
   const obj={id:id||uid(),nombre:gv('m-mdl-nombre'),plataforma:gv('m-mdl-plat'),chatter:gv('m-mdl-cht'),estado:gv('m-mdl-est'),notas:gv('m-mdl-notas')};
