@@ -694,10 +694,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est"><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select></div>
     </div>
     <div class="fg"><label>Team</label><select class="fs" id="m-mdl-team"></select></div>
-    <div class="fr2">
-      <div class="fg"><label>Nicho</label><select class="fs" id="m-mdl-nicho"></select></div>
-      <div class="fg"><label>Estado</label><select class="fs" id="m-mdl-est2" style="display:none"></select></div>
-    </div>
+    <div class="fg"><label>Nicho</label><select class="fs" id="m-mdl-nicho"></select></div>
     <div class="fg"><label>Notas</label><textarea class="fta" id="m-mdl-notas" placeholder="Notas adicionales..."></textarea></div>
     <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-mdl')">Cancelar</button><button class="btn btn-primary" onclick="saveModelo()">Guardar</button></div>
   </div>
@@ -1594,16 +1591,23 @@ function renderPerf(){
     }).join('');
 
   // Calcular métricas
-  const rows=chts.map(c=>{
-    const mods=(SC.modelos||[]).filter(m=>m.chatter===c.id&&m.estado==='activa');
+    const rows=chts.map(c=>{
+    const allMods=(SC.modelos||[]).filter(m=>m.team===c.equipo&&m.estado==='activa');
+    const mods=fNicho?allMods.filter(m=>m.nicho===fNicho):allMods;
     const ings=(SC.ingresos||[]).filter(i=>i.chatter_id===c.id&&i.fecha?.startsWith(mes)&&isQ(i.fecha,q));
-    const hrs=(SC.horas_quincena[hkey]||{})[c.id]||0;
+    const hrs=ings.reduce((a,i)=>a+(parseFloat(i.horas)||0),0);
     const fac=ings.reduce((a,i)=>a+(parseFloat(i.total_facturado)||0),0);
-    const com=fac*0.05;const {pph:ePPH2}=getCfg();const costoH=hrs*ePPH2;const costo=com+costoH;
+    const comNormal=ings.reduce((a,i)=>a+(parseFloat(i.comision_normal)||0),0);
+    const comLunes=ings.reduce((a,i)=>a+(parseFloat(i.lunes_comision)||0),0);
+    const com=comNormal+comLunes;
+    const tuvoLunes=ings.some(i=>i.lunes);
+    const {pph:pPPH}=getCfg();
+    const costoH=hrs*pPPH;
+    const costo=com+costoH;
     const profit=fac-costo;
     const margen=fac>0?((profit/fac)*100).toFixed(1):'—';
-    const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':'—';
-    return{c,mods,fac,com,costoH,costo,profit,margen,hrs,tpm};
+    const tpm=allMods.length>0&&hrs>0?(hrs/allMods.length).toFixed(1)+'h':allMods.length>0?'—':'—';
+    return{c,mods,allMods,fac,com,comNormal,comLunes,tuvoLunes,costoH,costo,profit,margen,hrs,tpm};
   });
 
   // KPIs globales
