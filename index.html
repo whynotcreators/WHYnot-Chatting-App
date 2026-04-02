@@ -998,7 +998,7 @@ function updIngCalc(){
   const totalCom=normalCom+lunesCom;
   const total=totalMdls;
   const costoH=hrs*PPH;
-  const tpm=allMods.length>0&&hrs>0?(hrs/allMods.length).toFixed(1)+'h':allMods.length>0?'— (cargá hrs)':'—';
+  const tpm=mods.length>0&&hrs>0?(hrs/mods.length).toFixed(1)+'h':mods.length>0?'— (cargá hrs)':'—';
   document.getElementById('ing-calc-total').textContent=fMon(total);
   document.getElementById('ing-calc-com').textContent=fMon(normalCom);
   if(document.getElementById('ing-calc-com-lunes'))document.getElementById('ing-calc-com-lunes').textContent=fMon(lunesCom);
