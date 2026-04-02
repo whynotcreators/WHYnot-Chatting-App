@@ -427,7 +427,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </select>
   </div>
   <div class="card">
-    <table class="tbl"><thead><tr><th>Nombre</th><th>Plataforma</th><th>Contacto</th><th>Disponibilidad</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>Nombre</th><th>Contacto</th><th>Disponibilidad</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
     <tbody id="tbody-cand"></tbody></table>
   </div>
 </div>
@@ -738,10 +738,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="modal">
     <div class="mhdr"><div class="mttl" id="m-cand-ttl">Nuevo candidato</div><button class="mx" onclick="closeModal('m-cand')">×</button></div>
     <input type="hidden" id="m-cand-id"/>
-    <div class="fr2">
-      <div class="fg"><label>Nombre / Handle</label><input class="fi" id="m-cand-nombre" placeholder="@usuario o nombre"/></div>
-      <div class="fg"><label>Plataforma</label><select class="fs" id="m-cand-plat"><option>Instagram</option><option>TikTok</option><option>Twitter/X</option><option>OnlyFans</option><option>Otra</option></select></div>
-    </div>
+    <div class="fg"><label>Nombre / Handle</label><input class="fi" id="m-cand-nombre" placeholder="@usuario o nombre"/></div>
     <div class="fg"><label>Contacto (WhatsApp / DM)</label><input class="fi" id="m-cand-contacto" placeholder="ej: +54 9 11 ..."/></div>
     <div class="fg"><label>Disponibilidad horaria</label>
       <select class="fs" id="m-cand-disp">
@@ -1539,10 +1536,10 @@ async function delSolicitud(id){if(!confirm('¿Eliminar?'))return;SC.solicitudes
 function bCand(s){const m={contactado:['bg-blue','Contactado'],interesado:['bg-amber','Interesado'],incorporado:['bg-green','Incorporado'],descartado:['bg-red','Descartado']};const[c,l]=m[s]||['bg-blue','Contactado'];return`<span class="badge ${c}">${l}</span>`;}
 function fCand(f,el){candF=f;document.querySelectorAll('#page-candidatos .ptab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderCandidatos();}
 function prepCand(){sv('m-cand-ttl','Nuevo candidato');['m-cand-id','m-cand-nombre','m-cand-contacto','m-cand-notas'].forEach(id=>sv(id,''));sv('m-cand-est','contactado');sv('m-cand-disp','');}
-function editCandidato(id){const c=(SC.candidatos||[]).find(x=>x.id===id);if(!c)return;sv('m-cand-ttl','Editar candidato');sv('m-cand-id',id);sv('m-cand-nombre',c.nombre);sv('m-cand-plat',c.plataforma||'Instagram');sv('m-cand-contacto',c.contacto||'');sv('m-cand-disp',c.disponibilidad||'');sv('m-cand-est',c.estado||'contactado');sv('m-cand-notas',c.notas||'');document.getElementById('m-cand').classList.add('open');}
+function editCandidato(id){const c=(SC.candidatos||[]).find(x=>x.id===id);if(!c)return;sv('m-cand-ttl','Editar candidato');sv('m-cand-id',id);sv('m-cand-nombre',c.nombre);sv('m-cand-contacto',c.contacto||'');sv('m-cand-disp',c.disponibilidad||'');sv('m-cand-est',c.estado||'contactado');sv('m-cand-notas',c.notas||'');document.getElementById('m-cand').classList.add('open');}
 async function saveCandidato(){
   const id=gv('m-cand-id');
-  const obj={id:id||uid(),nombre:gv('m-cand-nombre'),plataforma:gv('m-cand-plat'),contacto:gv('m-cand-contacto'),disponibilidad:gv('m-cand-disp'),estado:gv('m-cand-est'),notas:gv('m-cand-notas')};
+  const obj={id:id||uid(),nombre:gv('m-cand-nombre'),contacto:gv('m-cand-contacto'),disponibilidad:gv('m-cand-disp'),estado:gv('m-cand-est'),notas:gv('m-cand-notas')};
   if(!obj.nombre){toast('Ingresá el nombre','err');return;}
   ensureArr('candidatos');SC.candidatos=id?SC.candidatos.map(x=>x.id===id?obj:x):[...SC.candidatos,obj];
   await save();renderCandidatos();closeModal('m-cand');toast('Guardado');
@@ -1555,7 +1552,7 @@ function renderCandidatos(){
   if(!all.length){tb.innerHTML=emptyRow(7,'🎯','Sin candidatos');return;}
   const dispLbl={'00-06':'🌙 00-06','06-12':'🌅 06-12','12-18':'☀️ 12-18','18-00':'🌆 18-00'};
   tb.innerHTML=all.map(c=>`<tr>
-    <td><strong>${c.nombre}</strong></td><td>${c.plataforma||'—'}</td><td>${c.contacto||'—'}</td>
+    <td><strong>${c.nombre}</strong></td><td>${c.contacto||'—'}</td>
     <td>${c.disponibilidad?`<span class="badge bg-blue">${dispLbl[c.disponibilidad]||c.disponibilidad}</span>`:'—'}</td>
     <td>${bCand(c.estado)}</td><td style="font-size:12px;color:var(--text2);max-width:140px">${c.notas||'—'}</td>
     <td><button class="bti" onclick="editCandidato('${c.id}')">✏️</button><button class="bti" onclick="delCandidato('${c.id}')">🗑️</button></td>
