@@ -636,7 +636,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
         <button class="btn btn-primary" onclick="saveConfig()">Guardar configuración</button>
         <div style="margin-top:16px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-sm);font-size:12px;color:var(--text3)">
-          Valores actuales: <strong id="cfg-display">PPH $2/h · Normal 5% · Lunes 8%</strong>
+          Valores actuales: <strong id="cfg-display">PPH $2/h · Normal 5% · Lunes 10%</strong>
         </div>
       </div>
     </div>
@@ -1466,7 +1466,7 @@ function updIngLunes(){
       <label style="font-size:12px;color:var(--amber);font-weight:500;white-space:nowrap;min-width:70px">Lunes ${i+1}:</label>
       <label style="font-size:11px;color:var(--text3);white-space:nowrap">Facturado:</label>
       <input class="fi" type="number" id="ing-lunes-${i}" placeholder="0" style="max-width:120px" oninput="updIngCalc()"/>
-      <span style="font-size:11px;color:var(--text3)">→ 8%: <strong id="ing-lunes-com-${i}" style="color:var(--amber)">$0.00</strong></span>
+      <span style="font-size:11px;color:var(--text3)">→ 10%: <strong id="ing-lunes-com-${i}" style="color:var(--amber)">$0.00</strong></span>
     </div>`).join('');
   updIngCalc();
 }
