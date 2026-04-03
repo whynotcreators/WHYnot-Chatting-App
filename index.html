@@ -529,7 +529,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr"><div class="card-ttl">Comparativa por chatter</div></div>
-    <table class="tbl"><thead><tr><th>Chatter</th><th>Equipo</th><th>Turno</th><th>Modelos</th><th>Hrs</th><th>Tiempo/modelo</th><th>Facturado</th><th>Comisión 5%</th><th>Comisión lunes 8%</th><th>Costo hrs</th><th>Costo total</th><th>Profit</th><th>Margen</th></tr></thead>
+    <table class="tbl"><thead><tr><th>Chatter</th><th>Equipo</th><th>Turno</th><th>Modelos</th><th>Hrs</th><th>Tiempo/modelo</th><th>Facturado</th><th>Comisión 5%</th><th>Comisión lunes 10%</th><th>Costo hrs</th><th>Costo total</th><th>Profit</th><th>Margen</th></tr></thead>
     <tbody id="tbody-perf"></tbody></table>
   </div>
   <div class="card">
@@ -619,7 +619,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="fg">
           <label>Comisión lunes (%)</label>
           <div style="display:flex;align-items:center;gap:10px">
-            <input class="fi" type="number" id="cfg-com-lunes" placeholder="8" min="0" max="100" style="max-width:120px"/>
+            <input class="fi" type="number" id="cfg-com-lunes" placeholder="10" min="0" max="100" style="max-width:120px"/>
             <span style="font-size:12px;color:var(--text3)">% sobre lo facturado los lunes</span>
           </div>
         </div>
@@ -696,7 +696,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="calc-box">
       <div class="calc-row"><span style="color:var(--text3)">Total facturado:</span><strong id="ing-calc-total">$0.00</strong></div>
       <div class="calc-row"><span style="color:var(--text3)">Comisión días normales (5%):</span><strong id="ing-calc-com">$0.00</strong></div>
-      <div class="calc-row"><span style="color:var(--text3)">Comisión lunes (8%):</span><strong id="ing-calc-com-lunes" style="color:var(--amber)">$0.00</strong></div>
+      <div class="calc-row"><span style="color:var(--text3)">Comisión lunes (10%):</span><strong id="ing-calc-com-lunes" style="color:var(--amber)">$0.00</strong></div>
       <div class="calc-row"><span style="color:var(--text3)">Comisión total:</span><strong id="ing-calc-com-total">$0.00</strong></div>
       <div class="calc-row"><span style="color:var(--text3)">Costo horas ($2/h):</span><strong id="ing-calc-hrs">$0.00</strong></div>
       <div class="calc-row"><span style="color:var(--text3)">Tiempo promedio/modelo:</span><strong id="ing-calc-tpm" style="color:var(--green)">—</strong></div>
@@ -1192,7 +1192,7 @@ function getCfg(){
   return {
     pph: parseFloat(cfg.pph)||2,
     comNormal: parseFloat(cfg.com_normal)||5,
-    comLunes: parseFloat(cfg.com_lunes)||8
+    comLunes: parseFloat(cfg.com_lunes)||10
   };
 }
 
@@ -1396,8 +1396,8 @@ function renderDashLunes(){
     if(!porChatter[i.chatter_id])porChatter[i.chatter_id]={nombre:i.chatter_nombre,lunes:[],total:0,com:0};
     const d=porChatter[i.chatter_id];
     (i.lunes_detalle||[i.lunes_monto]).forEach((v,idx)=>{
-      d.lunes.push({n:d.lunes.length+1,monto:v,com:v*0.08});
-      d.total+=v;d.com+=v*0.08;
+      d.lunes.push({n:d.lunes.length+1,monto:v,com:v*0.10});
+      d.total+=v;d.com+=v*0.10;
     });
   });
   lb.innerHTML='<div style="padding:8px 16px">'+Object.values(porChatter).map(ch=>`
@@ -1408,7 +1408,7 @@ function renderDashLunes(){
           <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:var(--r-sm);padding:10px 14px;min-width:140px">
             <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:4px">Lunes ${l.n}</div>
             <div style="font-size:15px;font-weight:700">${fMon(l.monto)}</div>
-            <div style="font-size:11px;color:var(--text3)">Comisión 8%: ${fMon(l.com)}</div>
+            <div style="font-size:11px;color:var(--text3)">Comisión 10%: ${fMon(l.com)}</div>
           </div>`).join('')}
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;min-width:140px">
           <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px">Total lunes</div>
@@ -2238,17 +2238,17 @@ function loadConfig(){
   const el_tw=document.getElementById('cfg-tl-wallet');
   if(el_pph)el_pph.value=cfg.pph||2;
   if(el_n)el_n.value=cfg.com_normal||5;
-  if(el_l)el_l.value=cfg.com_lunes||8;
+  if(el_l)el_l.value=cfg.com_lunes||10;
   if(el_tl)el_tl.value=cfg.com_tl||8;
   if(el_tw)el_tw.value=cfg.tl_wallet||'';
   const disp=document.getElementById('cfg-display');
-  if(disp)disp.textContent=`PPH $${cfg.pph||2}/h · Normal ${cfg.com_normal||5}% · Lunes ${cfg.com_lunes||8}% · TL ${cfg.com_tl||8}%`;
+  if(disp)disp.textContent=`PPH $${cfg.pph||2}/h · Normal ${cfg.com_normal||5}% · Lunes ${cfg.com_lunes||10}% · TL ${cfg.com_tl||8}%`;
 }
 async function saveConfig(){
   if(!SC.config)SC.config={};
   SC.config.pph=parseFloat(document.getElementById('cfg-pph')?.value)||2;
   SC.config.com_normal=parseFloat(document.getElementById('cfg-com-normal')?.value)||5;
-  SC.config.com_lunes=parseFloat(document.getElementById('cfg-com-lunes')?.value)||8;
+  SC.config.com_lunes=parseFloat(document.getElementById('cfg-com-lunes')?.value)||10;
   SC.config.com_tl=parseFloat(document.getElementById('cfg-com-tl')?.value)||8;
   SC.config.tl_wallet=document.getElementById('cfg-tl-wallet')?.value||'';
   await save();loadConfig();renderDashTL();renderPagosTL();toast('Configuración guardada ✓');
