@@ -214,6 +214,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Tareas
   </div>
+  <div class="sb-item" id="sb-faltas-tl" onclick="goSec('faltastl',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Faltas TL
+  </div>
   <div id="sb-admin" style="display:none">
     <div class="sb-sep"></div>
     <div class="sb-grp">Configuración</div>
@@ -510,6 +514,47 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <table class="tbl">
       <thead><tr><th>Fecha</th><th>Chatter</th><th>Equipo</th><th>Tipo de falta</th><th>Strikes</th><th>Descripción</th><th>Estado</th><th>Eliminado por</th><th></th></tr></thead>
       <tbody id="tbody-faltas"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FALTAS TL -->
+<div class="page" id="page-faltastl">
+  <div class="ph">
+    <div class="ph-l"><div class="pt">Faltas del Team Leader</div><div class="ps">Registro disciplinario del TL · Solo el admin puede registrar faltas</div></div>
+    <div id="btn-nueva-falta-tl"></div>
+  </div>
+
+  <!-- Filtros mes / quincena / estado -->
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <select class="fs" id="faltastl-mes" onchange="renderFaltasTL()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los meses</option></select>
+    <select class="fs" id="faltastl-quincena" onchange="renderFaltasTL()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Ambas quincenas</option><option value="q1">Q1 (1-15)</option><option value="q2">Q2 (16-fin)</option></select>
+    <select class="fs" id="faltastl-tipo-filter" onchange="renderFaltasTL()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los tipos</option></select>
+    <div style="display:flex;gap:4px;border-bottom:1px solid var(--border)">
+      <div class="ptab active" id="faltastl-tab-todas" onclick="fFaltasTL('todas',this)" style="padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Todas</div>
+      <div class="ptab" onclick="fFaltasTL('activa',this)" style="padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">⚡ Activas</div>
+      <div class="ptab" onclick="fFaltasTL('caducada',this)" style="padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">💤 Caducadas</div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div id="faltastl-kpis" class="krow k4" style="margin-bottom:20px"></div>
+
+  <!-- Card resumen TL -->
+  <div id="faltastl-resumen" style="margin-bottom:20px"></div>
+
+  <!-- Reglas -->
+  <div id="faltastl-reglas-box" style="display:none;background:rgba(226,75,74,.06);border:1px solid rgba(226,75,74,.2);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--text2);line-height:2"></div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ttl">Historial de faltas del TL</div>
+      <span style="font-size:12px;color:var(--text3)" id="faltastl-count-label">—</span>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Fecha</th><th>Q</th><th>Tipo de falta</th><th>Strikes</th><th>Descripción</th><th>Estado</th><th>Eliminado por</th><th id="faltastl-th-acciones"></th></tr></thead>
+      <tbody id="tbody-faltastl"></tbody>
     </table>
   </div>
 </div>
@@ -839,8 +884,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
-<!-- MODAL: Nueva falta -->
-<div class="mbg" id="m-falta">
+<!-- MODAL: Falta al TL (solo admin) -->
+<div class="mbg" id="m-falta-tl">
+  <div class="modal">
+    <div class="mhdr"><div class="mttl" id="m-falta-tl-ttl">Registrar falta al TL</div><button class="mx" onclick="closeModal('m-falta-tl')">×</button></div>
+    <input type="hidden" id="m-ftl-id"/>
+    <div class="fg"><label>Fecha</label><input class="fi" type="date" id="m-ftl-fecha"/></div>
+    <div class="fg"><label>Tipo de falta</label>
+      <select class="fs" id="m-ftl-tipo" onchange="updFaltaTLStrikes()"></select>
+    </div>
+    <div class="fg">
+      <label>Strikes asignados</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input class="fi" type="number" id="m-ftl-strikes" min="1" max="10" style="max-width:100px"/>
+        <span style="font-size:12px;color:var(--text3)" id="m-ftl-strikes-hint">Según el tipo seleccionado</span>
+      </div>
+    </div>
+    <div class="fg"><label>Descripción / Detalle</label><textarea class="fta" id="m-ftl-desc" placeholder="Describí qué ocurrió..."></textarea></div>
+    <div id="m-ftl-csq-preview" style="display:none;background:rgba(226,75,74,.08);border:1px solid rgba(226,75,74,.25);border-radius:var(--r-sm);padding:12px 14px;font-size:12px;color:var(--text2);margin-bottom:4px"></div>
+    <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-falta-tl')">Cancelar</button><button class="btn btn-primary" onclick="saveFaltaTL()">Registrar falta</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Eliminar strike TL -->
+<div class="mbg" id="m-elim-strike-tl">
+  <div class="modal">
+    <div class="mhdr"><div class="mttl">⭐ Eliminar strike del TL</div><button class="mx" onclick="closeModal('m-elim-strike-tl')">×</button></div>
+    <input type="hidden" id="es-tl-id"/>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Eliminás este strike del historial del Team Leader por buen desempeño. El registro queda visible como "eliminado".</div>
+    <div class="fg"><label>Motivo</label><textarea class="fta" id="es-tl-motivo" placeholder="Ej: Excelente gestión del equipo este mes..."></textarea></div>
+    <div class="mftr"><button class="btn btn-ghost" onclick="closeModal('m-elim-strike-tl')">Cancelar</button><button class="btn btn-primary" onclick="confirmarElimStrikeTL()">⭐ Confirmar eliminación</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Falta al chatter -->
   <div class="modal">
     <div class="mhdr"><div class="mttl" id="m-falta-ttl">Registrar falta</div><button class="mx" onclick="closeModal('m-falta')">×</button></div>
     <input type="hidden" id="m-falta-id"/>
@@ -1045,6 +1122,7 @@ function goSec(sec,el){
   if(sec==='pagos'){renderPagos();renderPagosTL();}
   if(sec==='solicitudes')renderSolicitudes();
   if(sec==='faltas'){fillFaltasFilters();renderFaltas();}
+  if(sec==='faltastl'){fillFaltasTLFilters();renderFaltasTL();}
 }
 
 function goStab(section,tab,el){
@@ -1136,11 +1214,13 @@ function applyRoleAccess(){
     document.querySelectorAll('.sb-grp,.sb-sep').forEach(el=>el.style.display='none');
     document.getElementById('sb-admin').style.display='none';
     document.getElementById('sb-faltas').style.display='none';
+    document.getElementById('sb-faltas-tl').style.display='none';
   }else if(rol==='tl'){
     document.querySelectorAll('.sb-item').forEach(el=>el.style.display='');
     document.querySelectorAll('.sb-grp,.sb-sep').forEach(el=>el.style.display='');
     document.getElementById('sb-admin').style.display='none';
     document.getElementById('sb-faltas').style.display='';
+    document.getElementById('sb-faltas-tl').style.display=''; // TL puede ver sus propias faltas
   }else{
     document.querySelectorAll('.sb-item').forEach(el=>el.style.display='');
     document.querySelectorAll('.sb-grp,.sb-sep').forEach(el=>el.style.display='');
@@ -1150,6 +1230,7 @@ function applyRoleAccess(){
     document.getElementById('stab-faltas-cfg').style.display='';
     document.getElementById('stab-config').style.display='';
     document.getElementById('sb-faltas').style.display='';
+    document.getElementById('sb-faltas-tl').style.display='';
   }
   if(rol==='cm'){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1260,7 +1341,7 @@ function renderSolCalendario(){
   }).join('');
 }
 
-function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();fillSolFilters();renderDashInflowHoy();renderDashProximasEntregas();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();fillFaltasFilters();renderFaltas();}
+function renderAll(){loadConfig();renderDash();renderDashTL();renderPagosTL();renderIngresos();renderPagos();fillSolFilters();renderDashInflowHoy();renderDashProximasEntregas();renderEgresos();renderTeams();renderChatters();renderModelos();renderSolicitudes();renderCandidatos();renderAgenda();renderTareas();renderUsuarios();renderTipos();renderNichos();updateBadgeSol();fillTeamSelects();fillIngFilters();fillPerfFilters();fillFaltasFilters();renderFaltas();fillFaltasTLFilters();renderFaltasTL();}
 
 // DASHBOARD
 function renderDash(){
@@ -1885,7 +1966,198 @@ async function saveCaducidad(){
   SC.dias_caducidad=dias;await save();toast(`Caducidad guardada: ${dias} días ✓`);
 }
 
-// CANDIDATOS
+// ─────────────────────────────────────────────────────────
+// FALTAS TL
+// ─────────────────────────────────────────────────────────
+let faltasTLF='todas';
+
+function getStrikesActivosTL(){
+  return (SC.faltas_tl||[])
+    .filter(f=>!f.strike_eliminado&&!isFaltaTLCaducada(f))
+    .reduce((a,f)=>a+(parseInt(f.strikes)||0),0);
+}
+
+function isFaltaTLCaducada(f){
+  if(f.strike_eliminado)return false;
+  const dias=getDiasCaducidad();
+  const fechaFalta=new Date(f.fecha+'T12:00:00');
+  const hoy=new Date();
+  const hayPosterior=(SC.faltas_tl||[]).some(x=>x.id!==f.id&&x.fecha>f.fecha&&!x.strike_eliminado);
+  if(hayPosterior)return false;
+  return((hoy-fechaFalta)/(1000*60*60*24))>dias;
+}
+
+function fillFaltasTLFilters(){
+  // Tipos
+  const tf=document.getElementById('faltastl-tipo-filter');
+  if(tf){const cur=tf.value;tf.innerHTML='<option value="">Todos los tipos</option>'+getTiposFalta().map(t=>`<option value="${t.id}" ${t.id===cur?'selected':''}>${t.nombre}</option>`).join('');}
+  // Meses
+  const ms=document.getElementById('faltastl-mes');
+  if(ms){
+    const cur=ms.value;
+    const meses=[...new Set((SC.faltas_tl||[]).map(f=>f.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();
+    ms.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{
+      const[y,mo]=m.split('-');
+      const label=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+      return`<option value="${m}" ${m===cur?'selected':''}>${label}</option>`;
+    }).join('');
+  }
+}
+
+function fFaltasTL(f,el){
+  faltasTLF=f;
+  document.querySelectorAll('#page-faltastl .ptab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderFaltasTL();
+}
+
+function renderFaltasTL(){
+  fillFaltasTLFilters();
+  const esAdmin=CU?.rol==='admin';
+  const tl=getTLUser();
+
+  // Botón nueva falta — solo admin
+  const btnEl=document.getElementById('btn-nueva-falta-tl');
+  if(btnEl)btnEl.innerHTML=esAdmin?`<button class="btn btn-primary" onclick="openModalFaltaTL()">+ Registrar falta al TL</button>`:'';
+
+  // Th acciones
+  const thAcc=document.getElementById('faltastl-th-acciones');
+  if(thAcc)thAcc.textContent=esAdmin?'Acciones':'';
+
+  // KPIs
+  const mesActual=thisMonth();
+  const todasFaltas=SC.faltas_tl||[];
+  const faltasMes=todasFaltas.filter(f=>f.fecha?.startsWith(mesActual));
+  const faltasQ1=faltasMes.filter(f=>parseInt(f.fecha?.split('-')[2]||0)<=15);
+  const faltasQ2=faltasMes.filter(f=>parseInt(f.fecha?.split('-')[2]||0)>=16);
+  const sa=getStrikesActivosTL();
+  const kpisEl=document.getElementById('faltastl-kpis');
+  if(kpisEl)kpisEl.innerHTML=`
+    <div class="kcard"><div class="lbl">Faltas este mes</div><div class="val" style="color:var(--amber)">${faltasMes.length}</div><div class="hint"><span class="dot" style="background:var(--amber)"></span>${mesActual}</div></div>
+    <div class="kcard"><div class="lbl">Faltas Q1 (1-15)</div><div class="val" style="color:var(--blue)">${faltasQ1.length}</div></div>
+    <div class="kcard"><div class="lbl">Faltas Q2 (16-fin)</div><div class="val" style="color:var(--blue)">${faltasQ2.length}</div></div>
+    <div class="kcard"><div class="lbl">Strikes activos</div><div class="val" style="color:${sa===0?'var(--green)':sa<=3?'var(--amber)':'var(--red)'}">${sa}</div></div>`;
+
+  // Card resumen del TL
+  const resEl=document.getElementById('faltastl-resumen');
+  if(resEl){
+    const col=strikeLevelColor(sa);const cls=strikeLevelClass(sa);
+    const csq=getConsecuenciaActual(sa);
+    const maxS=Math.max(...getConsecuencias().map(x=>x.strikes),7);
+    const pct=Math.min((sa/maxS)*100,100);
+    resEl.innerHTML=`<div class="strike-card ${cls}" style="max-width:320px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:700">${tl?.nombre||'Team Leader'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Team Leader</div>
+        </div>
+        <div style="font-size:28px;font-weight:800;color:${col}">${sa}</div>
+      </div>
+      <div class="strike-bar" style="margin-top:8px"><div class="strike-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div style="font-size:12px;margin-top:6px;color:${sa===0?'var(--green)':csq?'var(--red)':'var(--amber)'}">
+        ${sa===0?'✓ Sin strikes activos':csq?`⚠ ${csq.descripcion}`:`${sa} strike${sa!==1?'s':''} activo${sa!==1?'s':''}`}
+      </div>
+    </div>`;
+  }
+
+  // Reglas
+  const rbox=document.getElementById('faltastl-reglas-box');
+  if(rbox){const csqs=getConsecuencias().sort((a,b)=>a.strikes-b.strikes);if(csqs.length){rbox.style.display='';rbox.innerHTML='<strong style="color:var(--red)">⚠ Consecuencias por strikes acumulados:</strong><br>'+csqs.map(c=>`• <strong>${c.strikes} strikes:</strong> ${c.descripcion}`).join('<br>');}}
+
+  // Tabla
+  const mesFiltro=document.getElementById('faltastl-mes')?.value||'';
+  const qFiltro=document.getElementById('faltastl-quincena')?.value||'';
+  const tipoFiltro=document.getElementById('faltastl-tipo-filter')?.value||'';
+  let faltas=SC.faltas_tl||[];
+  if(mesFiltro)faltas=faltas.filter(f=>f.fecha?.startsWith(mesFiltro));
+  if(qFiltro){faltas=faltas.filter(f=>{const d=parseInt(f.fecha?.split('-')[2]||0);return qFiltro==='q1'?d<=15:d>=16;});}
+  if(tipoFiltro)faltas=faltas.filter(f=>f.tipo_id===tipoFiltro);
+  if(faltasTLF==='activa')faltas=faltas.filter(f=>!isFaltaTLCaducada(f)&&!f.strike_eliminado);
+  else if(faltasTLF==='caducada')faltas=faltas.filter(f=>isFaltaTLCaducada(f)||f.strike_eliminado);
+
+  const cl=document.getElementById('faltastl-count-label');
+  if(cl)cl.textContent=`${faltas.length} registro${faltas.length!==1?'s':''}`;
+
+  const tb=document.getElementById('tbody-faltastl');
+  if(!faltas.length){tb.innerHTML=emptyRow(8,'🛡️','Sin faltas registradas para el TL');return;}
+
+  const tiposMap={};getTiposFalta().forEach(t=>tiposMap[t.id]=t);
+  const colorBadge={amber:'bg-amber',red:'bg-red',blue:'bg-blue',green:'bg-green',purple:'bg-purple'};
+
+  tb.innerHTML=[...faltas].sort((a,b)=>b.fecha>a.fecha?1:-1).map(f=>{
+    const caducada=isFaltaTLCaducada(f);const eliminado=f.strike_eliminado;
+    const tipo=tiposMap[f.tipo_id]||{nombre:f.tipo_nombre||'—',strikes:f.strikes,color:'amber'};
+    const badgeCls=colorBadge[tipo.color]||'bg-amber';
+    const diaF=parseInt(f.fecha?.split('-')[2]||0);
+    const qLabel=diaF<=15?'<span class="badge bg-blue" style="font-size:10px">Q1</span>':'<span class="badge bg-cyan" style="font-size:10px">Q2</span>';
+    let estadoBadge=eliminado?`<span class="badge bg-green">⭐ Strike eliminado</span>`:caducada?`<span class="badge" style="background:rgba(80,88,112,.2);color:var(--text3)">💤 Caducada</span>`:`<span class="badge bg-red">⚡ Activa</span>`;
+    const acciones=esAdmin?`
+      ${(!caducada&&!eliminado)?`<button class="bti" title="Eliminar strike por buen desempeño" onclick="openElimStrikeTL('${f.id}')">⭐</button>`:''}
+      <button class="bti" onclick="delFaltaTL('${f.id}')">🗑️</button>`:'';
+    return`<tr style="opacity:${caducada||eliminado?.7:1}">
+      <td>${fDate(f.fecha)}</td>
+      <td>${qLabel}</td>
+      <td><span class="badge ${badgeCls}">${tipo.nombre}</span></td>
+      <td><strong style="font-size:15px;color:${strikeLevelColor(f.strikes)}">${f.strikes}</strong></td>
+      <td style="font-size:12px;color:var(--text2);max-width:200px">${f.descripcion||'—'}</td>
+      <td>${estadoBadge}</td>
+      <td style="font-size:11px;color:var(--text3)">${f.eliminado_por?`${f.eliminado_por}: ${f.eliminado_motivo||''}`:''}</td>
+      <td style="white-space:nowrap">${acciones}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openModalFaltaTL(){
+  sv('m-ftl-id','');sv('m-ftl-fecha',today());sv('m-ftl-desc','');
+  const tipos=getTiposFalta();
+  const tp=document.getElementById('m-ftl-tipo');
+  if(tp)tp.innerHTML=tipos.map(t=>`<option value="${t.id}">${t.nombre} (${t.strikes} strike${t.strikes!==1?'s':''})</option>`).join('');
+  updFaltaTLStrikes();
+  document.getElementById('m-falta-tl').classList.add('open');
+}
+
+function updFaltaTLStrikes(){
+  const tipoId=gv('m-ftl-tipo');const tipo=getTiposFalta().find(t=>t.id===tipoId);
+  if(tipo){sv('m-ftl-strikes',tipo.strikes);document.getElementById('m-ftl-strikes-hint').textContent=`${tipo.strikes} strike${tipo.strikes!==1?'s':''} por "${tipo.nombre}"`;}
+  // Preview consecuencias
+  const nuevos=parseInt(gv('m-ftl-strikes'))||0;const actuales=getStrikesActivosTL();const total=actuales+nuevos;
+  const csq=getConsecuenciaActual(total);const prev=document.getElementById('m-ftl-csq-preview');
+  const tl=getTLUser();
+  if(nuevos){
+    prev.style.display='';
+    if(csq){prev.innerHTML=`<strong>⚠ ${tl?.nombre||'El TL'} llegará a ${total} strike${total!==1?'s':''} (tenía ${actuales}):</strong><br>${csq.descripcion}`;prev.style.background='rgba(226,75,74,.08)';prev.style.borderColor='rgba(226,75,74,.25)';}
+    else{prev.innerHTML=`<span style="color:var(--text3)">Strikes actuales: ${actuales} → después: ${total}</span>`;prev.style.background='rgba(80,88,112,.1)';prev.style.borderColor='rgba(80,88,112,.2)';}
+  }else{prev.style.display='none';}
+}
+
+async function saveFaltaTL(){
+  if(CU?.rol!=='admin'){toast('Solo el admin puede registrar faltas al TL','err');return;}
+  const fecha=gv('m-ftl-fecha');const tipoId=gv('m-ftl-tipo');const strikes=parseInt(gv('m-ftl-strikes'))||0;
+  if(!fecha||!tipoId||!strikes){toast('Completá todos los campos','err');return;}
+  const tipo=getTiposFalta().find(t=>t.id===tipoId);
+  const obj={id:uid(),fecha,tipo_id:tipoId,tipo_nombre:tipo?.nombre||'',strikes,descripcion:gv('m-ftl-desc'),registrado_por:CU?.nombre||'Admin',creado:new Date().toISOString()};
+  ensureArr('faltas_tl');SC.faltas_tl.push(obj);
+  await save();closeModal('m-falta-tl');renderFaltasTL();toast('Falta registrada al TL ✓');
+}
+
+async function delFaltaTL(id){
+  if(CU?.rol!=='admin'){toast('Solo el admin puede eliminar','err');return;}
+  if(!confirm('¿Eliminar este registro de falta del TL?'))return;
+  SC.faltas_tl=(SC.faltas_tl||[]).filter(x=>x.id!==id);
+  await save();renderFaltasTL();toast('Eliminado');
+}
+
+function openElimStrikeTL(faltaId){sv('es-tl-id',faltaId);sv('es-tl-motivo','');document.getElementById('m-elim-strike-tl').classList.add('open');}
+
+async function confirmarElimStrikeTL(){
+  const id=gv('es-tl-id');const motivo=gv('es-tl-motivo');
+  if(!motivo){toast('Ingresá el motivo','err');return;}
+  const f=(SC.faltas_tl||[]).find(x=>x.id===id);if(!f)return;
+  f.strike_eliminado=true;f.eliminado_por=CU?.nombre||'Admin';f.eliminado_motivo=motivo;f.eliminado_fecha=today();
+  await save();closeModal('m-elim-strike-tl');renderFaltasTL();toast('Strike eliminado ⭐');
+}
+
+
 function bCand(s){const m={contactado:['bg-blue','Contactado'],interesado:['bg-amber','Interesado'],incorporado:['bg-green','Incorporado'],descartado:['bg-red','Descartado']};const[c,l]=m[s]||['bg-blue','Contactado'];return`<span class="badge ${c}">${l}</span>`;}
 function fCand(f,el){candF=f;document.querySelectorAll('#page-candidatos .ptab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderCandidatos();}
 function prepCand(){sv('m-cand-ttl','Nuevo candidato');['m-cand-id','m-cand-nombre','m-cand-contacto','m-cand-notas'].forEach(id=>sv(id,''));sv('m-cand-est','contactado');sv('m-cand-disp','');}
