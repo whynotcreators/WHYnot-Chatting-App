@@ -478,17 +478,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="btn btn-primary" onclick="openModal('m-falta')">+ Registrar falta</button>
   </div>
 
-  <!-- Filtros team / chatter -->
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+  <!-- Filtros team / chatter / mes / quincena -->
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <select class="fs" id="faltas-team" onchange="onFaltasTeamChange()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los equipos</option></select>
     <select class="fs" id="faltas-chatter" onchange="renderFaltas()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los chatters</option></select>
     <select class="fs" id="faltas-tipo-filter" onchange="renderFaltas()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los tipos</option></select>
-    <div class="ptabs" style="margin-bottom:0;border-bottom:none">
-      <div class="ptab active" id="ftab-todos" onclick="fFaltas('todas',this)">Todas</div>
-      <div class="ptab" onclick="fFaltas('activa',this)">⚡ Activas</div>
-      <div class="ptab" onclick="fFaltas('caducada',this)">💤 Caducadas</div>
-    </div>
+    <select class="fs" id="faltas-mes" onchange="renderFaltas()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Todos los meses</option></select>
+    <select class="fs" id="faltas-quincena" onchange="renderFaltas()" style="width:auto;padding:7px 12px;font-size:13px"><option value="">Ambas quincenas</option><option value="q1">Q1 (1-15)</option><option value="q2">Q2 (16-fin)</option></select>
   </div>
+  <div style="display:flex;gap:4px;margin-bottom:20px">
+    <div class="ptab active" id="ftab-todos" onclick="fFaltas('todas',this)" style="padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Todas</div>
+    <div class="ptab" onclick="fFaltas('activa',this)" style="padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">⚡ Activas</div>
+    <div class="ptab" onclick="fFaltas('caducada',this)" style="padding:7px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">💤 Caducadas</div>
+  </div>
+
+  <!-- KPIs de análisis por período -->
+  <div id="faltas-kpis" class="krow k4" style="margin-bottom:20px"></div>
 
   <!-- Cards de strikes por chatter -->
   <div id="faltas-resumen-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px"></div>
@@ -1539,6 +1544,17 @@ function fillFaltasFilters(){
   const cur=ts.value;ts.innerHTML='<option value="">Todos los equipos</option>'+teams.map(t=>`<option value="${t.id}" ${t.id===cur?'selected':''}>${t.nombre}</option>`).join('');
   // Tipos de falta
   const tf=document.getElementById('faltas-tipo-filter');if(tf){const cur2=tf.value;tf.innerHTML='<option value="">Todos los tipos</option>'+getTiposFalta().map(t=>`<option value="${t.id}" ${t.id===cur2?'selected':''}>${t.nombre}</option>`).join('');}
+  // Meses disponibles según faltas registradas
+  const ms=document.getElementById('faltas-mes');
+  if(ms){
+    const cur3=ms.value;
+    const meses=[...new Set((SC.faltas||[]).map(f=>f.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();
+    ms.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{
+      const[y,mo]=m.split('-');
+      const label=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+      return`<option value="${m}" ${m===cur3?'selected':''}>${label}</option>`;
+    }).join('');
+  }
   onFaltasTeamChange();
 }
 
@@ -1576,13 +1592,46 @@ function renderFaltas(){
   const teamId=document.getElementById('faltas-team')?.value||'';
   const chatterId=document.getElementById('faltas-chatter')?.value||'';
   const tipoFiltro=document.getElementById('faltas-tipo-filter')?.value||'';
+  const mesFiltro=document.getElementById('faltas-mes')?.value||'';
+  const qFiltro=document.getElementById('faltas-quincena')?.value||'';
+
+  // Actualizar select de meses con los meses que existen en faltas
+  const msEl=document.getElementById('faltas-mes');
+  if(msEl&&!msEl.dataset.filled){
+    const cur=msEl.value;
+    const meses=[...new Set((SC.faltas||[]).map(f=>f.fecha?.substring(0,7)).filter(Boolean))].sort().reverse();
+    msEl.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{
+      const[y,mo]=m.split('-');
+      const label=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+      return`<option value="${m}" ${m===cur?'selected':''}>${label}</option>`;
+    }).join('');
+  }
 
   // Chatters visibles según filtro
   let chattersVisibles=SC.chatters||[];
   if(teamId)chattersVisibles=chattersVisibles.filter(c=>c.equipo===teamId);
   if(chatterId)chattersVisibles=chattersVisibles.filter(c=>c.id===chatterId);
 
-  // Resumen de strikes por chatter
+  // ── KPIs de análisis por período ──
+  const kpisEl=document.getElementById('faltas-kpis');
+  if(kpisEl){
+    const todasLasFaltas=SC.faltas||[];
+    const mesActual=thisMonth();
+    // Faltas del mes actual (del grupo de chatters visibles)
+    const idsVis=chattersVisibles.map(c=>c.id);
+    const faltasMes=todasLasFaltas.filter(f=>f.fecha?.startsWith(mesActual)&&(idsVis.length===0||idsVis.includes(f.chatter_id)));
+    const faltasQ1=faltasMes.filter(f=>{const d=parseInt(f.fecha?.split('-')[2]||0);return d>=1&&d<=15;});
+    const faltasQ2=faltasMes.filter(f=>{const d=parseInt(f.fecha?.split('-')[2]||0);return d>=16;});
+    // Strikes activos totales (de los chatters visibles)
+    const strikesTotales=chattersVisibles.reduce((a,c)=>a+getStrikesActivos(c.id),0);
+    kpisEl.innerHTML=`
+      <div class="kcard"><div class="lbl">Faltas este mes</div><div class="val" style="color:var(--amber)">${faltasMes.length}</div><div class="hint"><span class="dot" style="background:var(--amber)"></span>${mesActual}</div></div>
+      <div class="kcard"><div class="lbl">Faltas Q1 (1-15)</div><div class="val" style="color:var(--blue)">${faltasQ1.length}</div><div class="hint"><span class="dot" style="background:var(--blue)"></span>primera quincena</div></div>
+      <div class="kcard"><div class="lbl">Faltas Q2 (16-fin)</div><div class="val" style="color:var(--blue)">${faltasQ2.length}</div><div class="hint"><span class="dot" style="background:var(--blue)"></span>segunda quincena</div></div>
+      <div class="kcard"><div class="lbl">Strikes activos totales</div><div class="val" style="color:${strikesTotales===0?'var(--green)':strikesTotales<=3?'var(--amber)':'var(--red)'}">${strikesTotales}</div><div class="hint"><span class="dot" style="background:var(--accent)"></span>acumulados</div></div>`;
+  }
+
+  // Resumen de strikes por chatter (cards) — siempre muestra total acumulado, sin filtro de mes
   const grid=document.getElementById('faltas-resumen-grid');
   if(grid){
     if(!chattersVisibles.length){grid.innerHTML='<div style="color:var(--text3);font-size:13px;grid-column:1/-1">Seleccioná un team para ver el resumen.</div>';}
@@ -1593,6 +1642,8 @@ function renderFaltas(){
         const csq=getConsecuenciaActual(sa);
         const maxStrikes=Math.max(...getConsecuencias().map(x=>x.strikes),7);
         const pct=Math.min((sa/maxStrikes)*100,100);
+        // Faltas del mes actual de este chatter
+        const faltasMesChatter=(SC.faltas||[]).filter(f=>f.chatter_id===c.id&&f.fecha?.startsWith(thisMonth()));
         return`<div class="strike-card ${cls}" style="cursor:pointer" onclick="document.getElementById('faltas-chatter').value='${c.id}';renderFaltas()">
           <div style="display:flex;align-items:center;justify-content:space-between">
             <div style="font-size:13px;font-weight:600">${c.nombre}</div>
@@ -1600,28 +1651,42 @@ function renderFaltas(){
           </div>
           <div style="font-size:11px;color:var(--text3)">${getTeamNm(c.equipo)}</div>
           <div class="strike-bar"><div class="strike-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-          ${sa===0?'<div style="font-size:11px;color:var(--green)">✓ Sin strikes activos</div>':csq?`<div style="font-size:11px;color:var(--red)">⚠ ${csq.descripcion}</div>`:`<div style="font-size:11px;color:var(--amber)">${sa} strike${sa!==1?'s':''} activo${sa!==1?'s':''}</div>`}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+            ${sa===0?'<div style="font-size:11px;color:var(--green)">✓ Sin strikes activos</div>':csq?`<div style="font-size:11px;color:var(--red)">⚠ ${csq.descripcion}</div>`:`<div style="font-size:11px;color:var(--amber)">${sa} strike${sa!==1?'s':''} activo${sa!==1?'s':''}</div>`}
+            ${faltasMesChatter.length>0?`<span style="font-size:10px;color:var(--text3)">${faltasMesChatter.length} falta${faltasMesChatter.length!==1?'s':''} este mes</span>`:''}
+          </div>
         </div>`;
       }).join('');
     }
   }
 
-  // Tabla de faltas
+  // Tabla de faltas — acá SÍ aplica el filtro de mes y quincena
   let faltas=SC.faltas||[];
-  // Filtrar por chatters visibles
   const idsVisibles=chattersVisibles.map(c=>c.id);
   if(idsVisibles.length)faltas=faltas.filter(f=>idsVisibles.includes(f.chatter_id));
   if(tipoFiltro)faltas=faltas.filter(f=>f.tipo_id===tipoFiltro);
+  // Filtro de mes
+  if(mesFiltro)faltas=faltas.filter(f=>f.fecha?.startsWith(mesFiltro));
+  // Filtro de quincena
+  if(qFiltro){
+    faltas=faltas.filter(f=>{
+      const d=parseInt(f.fecha?.split('-')[2]||0);
+      return qFiltro==='q1'?d>=1&&d<=15:d>=16;
+    });
+  }
   // Filtrar por estado (activa/caducada)
   if(faltasF==='activa')faltas=faltas.filter(f=>!isFaltaCaducada(f)&&!f.strike_eliminado);
   else if(faltasF==='caducada')faltas=faltas.filter(f=>isFaltaCaducada(f)||f.strike_eliminado);
 
   // Label contador
   const cl=document.getElementById('faltas-count-label');
-  if(cl)cl.textContent=`${faltas.length} registro${faltas.length!==1?'s':''}`;
+  if(cl){
+    const labelPeriodo=mesFiltro?(qFiltro?` · ${qFiltro.toUpperCase()}`:' · mes seleccionado'):'';
+    cl.textContent=`${faltas.length} registro${faltas.length!==1?'s':''}${labelPeriodo}`;
+  }
 
   const tb=document.getElementById('tbody-faltas');
-  if(!faltas.length){tb.innerHTML=emptyRow(9,'⚡','Sin faltas registradas en este filtro');return;}
+  if(!faltas.length){tb.innerHTML=emptyRow(9,'⚡','Sin faltas en el período seleccionado');return;}
 
   // Colores por tipo
   const tiposMap={};getTiposFalta().forEach(t=>tiposMap[t.id]=t);
@@ -1635,11 +1700,16 @@ function renderFaltas(){
     if(eliminado)estadoBadge=`<span class="badge bg-green">⭐ Strike eliminado</span>`;
     else if(caducada)estadoBadge=`<span class="badge" style="background:rgba(80,88,112,.2);color:var(--text3)">💤 Caducada</span>`;
     else estadoBadge=`<span class="badge bg-red">⚡ Activa</span>`;
-    const elimBtn=(!caducada&&!eliminado)
-      ?`<button class="bti" title="Eliminar strike por buen desempeño" onclick="openElimStrike('${f.id}')">⭐</button>`:'';
+    // Quincena
+    const diaFalta=parseInt(f.fecha?.split('-')[2]||0);
+    const qLabel=diaFalta<=15?'<span class="badge bg-blue" style="font-size:10px">Q1</span>':'<span class="badge bg-cyan" style="font-size:10px">Q2</span>';
+    const elimBtn=(!caducada&&!eliminado)?`<button class="bti" title="Eliminar strike por buen desempeño" onclick="openElimStrike('${f.id}')">⭐</button>`:'';
     const delBtn=`<button class="bti" onclick="delFalta('${f.id}')">🗑️</button>`;
     return`<tr style="opacity:${caducada||eliminado?.7:1}">
-      <td>${fDate(f.fecha)}</td>
+      <td>
+        <div style="font-size:13px">${fDate(f.fecha)}</div>
+        ${qLabel}
+      </td>
       <td><strong>${f.chatter_nombre||'—'}</strong></td>
       <td><span class="badge bg-purple">${getTeamNm(f.equipo)}</span></td>
       <td><span class="badge ${badgeCls}">${tipo.nombre}</span></td>
