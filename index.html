@@ -1805,26 +1805,27 @@ function renderFaltasCfg(){
       <button class="bti" style="color:var(--red)" onclick="delTipoFalta(${i})">×</button>
     </div>`).join('')||'<div style="color:var(--text3);font-size:13px">Sin tipos de falta definidos.</div>';
   }
-  // Consecuencias — editables inline
+  // Consecuencias — editables inline con botón guardar
   const csqs=getConsecuencias().sort((a,b)=>a.strikes-b.strikes);
   const cl=document.getElementById('consecuencias-list');
   if(cl){
     cl.innerHTML=csqs.length?csqs.map((c,i)=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
-          <input type="number" min="1"
-            style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:13px;font-weight:700;color:var(--red);font-family:var(--font);text-align:center;outline:none"
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+          <span style="font-size:11px;color:var(--text3)">Al llegar a</span>
+          <input type="number" min="1" id="csq-edit-str-${i}"
+            style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:14px;font-weight:700;color:var(--red);font-family:var(--font);text-align:center;outline:none"
             value="${c.strikes}"
-            onchange="editConsecuencia(${i},'strikes',this.value)"
           />
-          <span style="font-size:11px;color:var(--text3)">str.</span>
+          <span style="font-size:11px;color:var(--text3)">strikes:</span>
         </div>
-        <input type="text"
-          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--text);font-family:var(--font);outline:none"
+        <input type="text" id="csq-edit-desc-${i}"
+          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);font-family:var(--font);outline:none"
           value="${c.descripcion}"
           placeholder="Describí la consecuencia..."
-          onchange="editConsecuencia(${i},'descripcion',this.value)"
+          onkeydown="if(event.key==='Enter')guardarConsecuencia(${i})"
         />
+        <button class="btn btn-sm" style="background:rgba(108,99,255,.15);color:var(--accent);border:1px solid rgba(108,99,255,.3);white-space:nowrap" onclick="guardarConsecuencia(${i})">✓ Guardar</button>
         <button class="bti" style="color:var(--red);flex-shrink:0" onclick="delConsecuencia(${i})" title="Eliminar">×</button>
       </div>`).join('')
     :'<div style="color:var(--text3);font-size:13px">Sin consecuencias definidas.</div>';
@@ -1849,12 +1850,22 @@ async function moveTipoFalta(i,d){
   if(!SC.tipos_falta)SC.tipos_falta=[...TIPOS_FALTA_DEF];
   const a=SC.tipos_falta,ni=i+d;if(ni<0||ni>=a.length)return;[a[i],a[ni]]=[a[ni],a[i]];await save();renderFaltasCfg();
 }
+async function guardarConsecuencia(i){
+  if(!SC.consecuencias)SC.consecuencias=[...CONSECUENCIAS_DEF];
+  if(!SC.consecuencias[i])return;
+  const strikes=parseInt(document.getElementById('csq-edit-str-'+i)?.value)||1;
+  const desc=document.getElementById('csq-edit-desc-'+i)?.value||'';
+  if(!desc){toast('Ingresá la descripción','err');return;}
+  SC.consecuencias[i].strikes=strikes;
+  SC.consecuencias[i].descripcion=desc;
+  await save();renderFaltasCfg();toast('Consecuencia guardada ✓');
+}
 async function editConsecuencia(i,campo,valor){
   if(!SC.consecuencias)SC.consecuencias=[...CONSECUENCIAS_DEF];
   if(!SC.consecuencias[i])return;
   if(campo==='strikes')SC.consecuencias[i].strikes=parseInt(valor)||1;
   else SC.consecuencias[i].descripcion=valor;
-  await save();toast('Consecuencia actualizada ✓');
+  await save();
 }
 async function addConsecuencia(){
   const strikes=parseInt(gv('csq-strikes'))||0;const desc=gv('csq-desc');
