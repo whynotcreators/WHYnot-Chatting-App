@@ -1805,15 +1805,29 @@ function renderFaltasCfg(){
       <button class="bti" style="color:var(--red)" onclick="delTipoFalta(${i})">×</button>
     </div>`).join('')||'<div style="color:var(--text3);font-size:13px">Sin tipos de falta definidos.</div>';
   }
-  // Consecuencias
+  // Consecuencias — editables inline
   const csqs=getConsecuencias().sort((a,b)=>a.strikes-b.strikes);
   const cl=document.getElementById('consecuencias-list');
   if(cl){
-    cl.innerHTML=csqs.map((c,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px">
-      <span class="badge bg-red" style="white-space:nowrap;min-width:80px;justify-content:center">${c.strikes} strikes</span>
-      <span style="flex:1;font-size:13px">${c.descripcion}</span>
-      <button class="bti" style="color:var(--red)" onclick="delConsecuencia(${i})">×</button>
-    </div>`).join('')||'<div style="color:var(--text3);font-size:13px">Sin consecuencias definidas.</div>';
+    cl.innerHTML=csqs.length?csqs.map((c,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+          <input type="number" min="1"
+            style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:13px;font-weight:700;color:var(--red);font-family:var(--font);text-align:center;outline:none"
+            value="${c.strikes}"
+            onchange="editConsecuencia(${i},'strikes',this.value)"
+          />
+          <span style="font-size:11px;color:var(--text3)">str.</span>
+        </div>
+        <input type="text"
+          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--text);font-family:var(--font);outline:none"
+          value="${c.descripcion}"
+          placeholder="Describí la consecuencia..."
+          onchange="editConsecuencia(${i},'descripcion',this.value)"
+        />
+        <button class="bti" style="color:var(--red);flex-shrink:0" onclick="delConsecuencia(${i})" title="Eliminar">×</button>
+      </div>`).join('')
+    :'<div style="color:var(--text3);font-size:13px">Sin consecuencias definidas.</div>';
   }
   // Días caducidad
   const dc=document.getElementById('cfg-strike-dias');if(dc)dc.value=getDiasCaducidad();
@@ -1834,6 +1848,13 @@ async function delTipoFalta(i){
 async function moveTipoFalta(i,d){
   if(!SC.tipos_falta)SC.tipos_falta=[...TIPOS_FALTA_DEF];
   const a=SC.tipos_falta,ni=i+d;if(ni<0||ni>=a.length)return;[a[i],a[ni]]=[a[ni],a[i]];await save();renderFaltasCfg();
+}
+async function editConsecuencia(i,campo,valor){
+  if(!SC.consecuencias)SC.consecuencias=[...CONSECUENCIAS_DEF];
+  if(!SC.consecuencias[i])return;
+  if(campo==='strikes')SC.consecuencias[i].strikes=parseInt(valor)||1;
+  else SC.consecuencias[i].descripcion=valor;
+  await save();toast('Consecuencia actualizada ✓');
 }
 async function addConsecuencia(){
   const strikes=parseInt(gv('csq-strikes'))||0;const desc=gv('csq-desc');
